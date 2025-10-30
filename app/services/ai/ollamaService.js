@@ -41,7 +41,8 @@ const queryOllamaStream = async (
 };
 
 const queryWithContextStream = async ({ question, dbResults, storeId }) => {
-  return await queryOllamaStream(finalPrompt);
+  const prompt = finalPrompt(question, storeId, dbResults);
+  return await queryOllamaStream(prompt);
 };
 
 const checkOllamaStatus = async () => {

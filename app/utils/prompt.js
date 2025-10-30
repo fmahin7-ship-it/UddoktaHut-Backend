@@ -1,4 +1,8 @@
-const finalPrompt = `Business Analyst: Answer based on this data.
+const finalPrompt = (
+  question,
+  storeId,
+  dbResults
+) => `Business Analyst: Answer based on this data.
                   Question: ${question}
                   Store ID: ${storeId}
                   Data: ${JSON.stringify(dbResults)}

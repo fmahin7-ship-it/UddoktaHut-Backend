@@ -78,6 +78,13 @@ const allowedContexts = [
   "report",
   "details",
   "status",
+  "sales",
+  "revenue",
+  "profit",
+  "trend",
+  "trends",
+  "performance",
+  "analytics",
   // Analysis related - Bengali
   "তথ্য",
   "বিশ্লেষণ",
