@@ -22,6 +22,10 @@ export const env = {
   DB_PASS: process.env.DB_PASS,
   DB_HOST: process.env.DB_HOST,
   DB_PORT: process.env.DB_PORT,
+  // AI Configuration
+  OLLAMA_URL: process.env.OLLAMA_URL,
+  AI_MODEL: process.env.AI_MODEL,
+  EMBEDDING_MODEL: process.env.EMBEDDING_MODEL,
   // OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   isProd: process.env.NODE_ENV === "production",
   isDev: process.env.NODE_ENV === "development",
