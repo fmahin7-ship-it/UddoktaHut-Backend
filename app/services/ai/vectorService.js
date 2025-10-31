@@ -38,7 +38,7 @@ const getDefaultQueryPatterns = () => {
       id: 1,
       query_text: "store information",
       sql_template:
-        "SELECT store_name, store_type, store_address, template_name, created_at FROM stores WHERE id = {storeId}",
+        "SELECT store_name, store_type, store_address, template_name, created_at FROM stores WHERE store_name = '{storeName}'",
       intent_category: "store_info",
       similarity: 0.5,
     },
@@ -46,7 +46,7 @@ const getDefaultQueryPatterns = () => {
       id: 2,
       query_text: "product analysis",
       sql_template:
-        "SELECT COUNT(*) as total_products, COUNT(CASE WHEN status = 'Active' THEN 1 END) as active_products, AVG(price) as avg_price FROM products WHERE store_id = {storeId}",
+        "SELECT COUNT(*) as total_products, COUNT(CASE WHEN status = 'Active' THEN 1 END) as active_products, AVG(price) as avg_price FROM products p JOIN stores s ON p.store_id = s.id WHERE s.store_name = '{storeName}'",
       intent_category: "product_analysis",
       similarity: 0.8,
     },
@@ -54,7 +54,7 @@ const getDefaultQueryPatterns = () => {
       id: 3,
       query_text: "business overview",
       sql_template:
-        "SELECT s.store_name, s.store_type, COUNT(p.id) as total_products FROM stores s LEFT JOIN products p ON s.id = p.store_id WHERE s.id = {storeId} GROUP BY s.id, s.store_name, s.store_type",
+        "SELECT s.store_name, s.store_type, COUNT(p.id) as total_products FROM stores s LEFT JOIN products p ON s.id = p.store_id WHERE s.store_name = '{storeName}' GROUP BY s.id, s.store_name, s.store_type",
       intent_category: "business_overview",
       similarity: 0.85,
     },
@@ -62,16 +62,16 @@ const getDefaultQueryPatterns = () => {
       id: 4,
       query_text: "owner information",
       sql_template:
-        "SELECT u.name, u.email, s.store_name FROM users u JOIN stores s ON u.id = s.user_id WHERE s.id = {storeId}",
+        "SELECT u.name, u.email, s.store_name FROM users u JOIN stores s ON u.id = s.user_id WHERE s.store_name = '{storeName}'",
       intent_category: "owner_info",
       similarity: 0.8,
     },
   ];
 };
 
-const generateSQLFromVector = (vectorMatches, storeId) => {
+const generateSQLFromVector = (vectorMatches, storeName) => {
   const bestMatch = vectorMatches[0];
-  return bestMatch.sql_template.replace("{storeId}", storeId);
+  return bestMatch.sql_template.replace("{storeName}", storeName);
 };
 
 const classifyQueryIntent = (question) => {
@@ -126,7 +126,7 @@ const classifyQueryIntent = (question) => {
     return "store_info";
   }
 
-  return "store_info";
+  return null;
 };
 
 // Store new query patterns (for future learning)

@@ -1,6 +1,6 @@
 import { env } from "../../config/env.js";
 import { throwError } from "../../lib/throwError.js";
-import { finalPrompt } from "../../utils/prompt.js";
+import { finalChatPrompt, finalSqlPrompt } from "../../utils/prompt.js";
 
 const OLLAMA_BASE_URL = env.OLLAMA_URL || "http://localhost:11434";
 
@@ -40,8 +40,10 @@ const queryOllamaStream = async (
   }
 };
 
-const queryWithContextStream = async ({ question, dbResults, storeId }) => {
-  const prompt = finalPrompt(question, storeId, dbResults);
+const queryWithContextStream = async ({ question, dbResults, storeName }) => {
+  const prompt = dbResults
+    ? finalSqlPrompt(question, storeName, dbResults)
+    : finalChatPrompt(question);
   return await queryOllamaStream(prompt);
 };
 

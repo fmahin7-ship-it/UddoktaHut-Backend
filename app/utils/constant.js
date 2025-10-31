@@ -85,6 +85,7 @@ const allowedContexts = [
   "trends",
   "performance",
   "analytics",
+  "sell",
   // Analysis related - Bengali
   "তথ্য",
   "বিশ্লেষণ",

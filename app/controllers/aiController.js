@@ -6,9 +6,10 @@ import {
 const queryAIStream = async (req, res, next) => {
   try {
     const { question, useRAG } = req.body;
-    const storeId = req.user?.Store?.id || 3;
+    const storeName =
+      req.headers["x-store-name"] || req.user?.Store?.store_name || "shoporia";
 
-    const result = await processAIQueryStream(question, storeId, { useRAG });
+    const result = await processAIQueryStream(question, storeName, { useRAG });
 
     if (!result.stream) {
       res.write(result.data.answer);

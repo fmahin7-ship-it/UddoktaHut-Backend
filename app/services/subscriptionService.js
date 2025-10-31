@@ -52,6 +52,7 @@ const getSubscriptionStatus = async ({ userId }) => {
       role: user.Roles[0]?.user_roles?.role_id,
       template_name: user.Store.template_name,
       storeName: user.Store.store_name,
+      storeUrl: user.Store.store_url,
     };
 
     user && (userData.isActive = isActive);

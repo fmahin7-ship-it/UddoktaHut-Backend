@@ -15,11 +15,13 @@ import {
 } from "../../utils/constant.js";
 import { sqlPrompt } from "../../utils/prompt.js";
 
-const processRAGQueryStream = async (question, storeId) => {
+const processRAGQueryStream = async (question, storeName) => {
   try {
+    const intent = classifyQueryIntent(question);
+
     const validation = validateBusinessContext(question);
 
-    if (!validation.isValid) {
+    if (intent && !validation.isValid) {
       return {
         stream: { body: createErrorStream(validation.message) },
         metadata: {
@@ -32,24 +34,27 @@ const processRAGQueryStream = async (question, storeId) => {
 
     const embedding = await getQuestionEmbedding(question);
 
-    const { sqlQuery, intent } = await getSQLFromEmbedding(
-      embedding,
-      question,
-      storeId
-    );
+    let dbResults = null;
 
-    const dbResults = await getBusinessData(sqlQuery, storeId);
+    if (intent) {
+      const { sqlQuery } = await getSQLFromEmbedding(
+        embedding,
+        question,
+        storeName
+      );
+      dbResults = await getBusinessData(sqlQuery, storeName);
+    }
 
     // Return the stream directly from queryWithContext (which now calls queryOllamaStream)
     const stream = await queryWithContextStream({
       question,
       dbResults,
-      storeId,
+      storeName,
     });
 
     return {
       stream,
-      metadata: { intent, sqlQuery },
+      metadata: { intent },
     };
   } catch (error) {
     if (error.statusCode) throw error;
@@ -57,7 +62,7 @@ const processRAGQueryStream = async (question, storeId) => {
   }
 };
 
-const processSimpleQueryStream = async (question, storeId) => {
+const processSimpleQueryStream = async (question, storeName) => {
   try {
     const validation = validateBusinessContext(question);
 
@@ -74,15 +79,15 @@ const processSimpleQueryStream = async (question, storeId) => {
       };
     }
 
-    const sqlQuery = await generateSmartBusinessSQL(question, storeId);
+    const sqlQuery = await generateSmartBusinessSQL(question, storeName);
 
-    const dbResults = await getBusinessData(sqlQuery, storeId);
+    const dbResults = await getBusinessData(sqlQuery, storeName);
 
     // Return the stream directly from queryWithContextStream (which calls queryOllamaStream)
     const stream = await queryWithContextStream({
       question,
       dbResults,
-      storeId,
+      storeName,
     });
 
     const intent = classifyQueryIntent(question);
@@ -104,7 +109,7 @@ const getQuestionEmbedding = async (question) => {
   }
 };
 
-const getSQLFromEmbedding = async (embedding, question, storeId) => {
+const getSQLFromEmbedding = async (embedding, question, storeName) => {
   try {
     const vectorMatches = await searchSimilarQueries(embedding, {
       limit: 3,
@@ -117,38 +122,39 @@ const getSQLFromEmbedding = async (embedding, question, storeId) => {
       vectorMatches[0].similarity > 0.7
     ) {
       return {
-        sqlQuery: generateSQLFromVector(vectorMatches, storeId),
+        sqlQuery: generateSQLFromVector(vectorMatches, storeName),
         intent: vectorMatches[0].intent_category,
       };
     }
 
     // Fallback if no good vector match - use AI instead of hardcoded
-    const sqlQuery = await generateSmartBusinessSQL(question, storeId);
-    const intent = classifyQueryIntent(question);
+    const sqlQuery = await generateSmartBusinessSQL(question, storeName);
     return {
       sqlQuery,
-      intent,
     };
   } catch (error) {
     throwError(`SQL generation failed: ${error.message}`, 500);
   }
 };
 
-const getBusinessData = async (sqlQuery, storeId) => {
+const getBusinessData = async (sqlQuery, storeName) => {
   try {
-    return await executeSecureSQL(sqlQuery, storeId);
+    return await executeSecureSQL(sqlQuery, storeName);
   } catch (error) {
     throwError(`Data retrieval failed: ${error.message}`, 500);
   }
 };
 
-const executeSecureSQL = async (sqlQuery, storeId) => {
+const executeSecureSQL = async (sqlQuery, storeName) => {
   try {
+    console.log("🔍 DEBUG - Executing SQL:", sqlQuery);
+    console.log("🔍 DEBUG - Store Name:", storeName);
+
     if (!sqlQuery || typeof sqlQuery !== "string") {
       throwError("Invalid SQL query", 400);
     }
 
-    if (!sqlQuery.includes(storeId.toString())) {
+    if (!sqlQuery.includes(storeName.toString())) {
       throwError("Query must include store ID for security", 400);
     }
 
@@ -159,6 +165,7 @@ const executeSecureSQL = async (sqlQuery, storeId) => {
       ),
     ]);
 
+    console.log("🔍 DEBUG - Query Results:", results);
     return results;
   } catch (error) {
     if (error.message === "Query timeout") {
@@ -227,15 +234,15 @@ const validateBusinessContext = (question) => {
   return { isValid: true };
 };
 
-const generateSmartBusinessSQL = async (question, storeId) => {
+const generateSmartBusinessSQL = async (question, storeName) => {
   try {
-    const safeStoreId = parseInt(storeId);
-    if (!safeStoreId || safeStoreId <= 0) {
-      throw new Error("Invalid store ID");
+    const safeStoreName = storeName;
+    if (!safeStoreName || safeStoreName.trim().length === 0) {
+      throw new Error("Invalid store name");
     }
 
     const response = await queryOllamaStream(
-      sqlPrompt(question, safeStoreId),
+      sqlPrompt(question, safeStoreName),
       "llama3.1:8b",
       false
     );
@@ -257,8 +264,8 @@ const generateSmartBusinessSQL = async (question, storeId) => {
       }
 
       const securityThreats = [
-        `store_id != ${safeStoreId}`,
-        `store_id <> ${safeStoreId}`,
+        `store_id != ${safeStoreName}`,
+        `store_id <> ${safeStoreName}`,
         "store_id in (",
         "store_id > 0",
         "store_id >= 1",
@@ -286,9 +293,9 @@ const generateSmartBusinessSQL = async (question, storeId) => {
         throwError("Only SELECT queries are allowed", 400);
       }
 
-      if (!cleanSQL.includes(safeStoreId.toString())) {
+      if (!cleanSQL.includes(safeStoreName)) {
         throwError(
-          "Query must include the specific store ID for security",
+          "Query must include the specific store name for security",
           400
         );
       }

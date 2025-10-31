@@ -6,7 +6,7 @@ import { checkOllamaStatus } from "./ollamaService.js";
 import { checkEmbeddingModel } from "./embeddingService.js";
 import { throwError } from "../../lib/throwError.js";
 
-const processAIQueryStream = async (question, storeId, options = {}) => {
+const processAIQueryStream = async (question, storeName, options = {}) => {
   try {
     if (
       !question ||
@@ -16,8 +16,12 @@ const processAIQueryStream = async (question, storeId, options = {}) => {
       throwError("Question is required and must be a valid string", 400);
     }
 
-    if (!storeId || isNaN(parseInt(storeId))) {
-      throwError("Valid store ID is required", 400);
+    if (
+      !storeName ||
+      typeof storeName !== "string" ||
+      storeName.trim().length === 0
+    ) {
+      throwError("Valid store name is required", 400);
     }
 
     const servicesStatus = await checkAIServices();
@@ -29,9 +33,9 @@ const processAIQueryStream = async (question, storeId, options = {}) => {
     const useRAG = options.useRAG !== false; // Default to true
 
     if (useRAG && servicesStatus.embedding)
-      return await processRAGQueryStream(question, parseInt(storeId));
+      return await processRAGQueryStream(question, storeName);
 
-    return await processSimpleQueryStream(question, parseInt(storeId));
+    return await processSimpleQueryStream(question, storeName);
   } catch (error) {
     if (error.statusCode) throw error;
     throwError(`AI query processing failed: ${error.message}`, 500);

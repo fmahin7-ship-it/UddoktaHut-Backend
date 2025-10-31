@@ -1,7 +1,7 @@
 import { env } from "../config/env.js";
 import passport from "passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
-import { Role, User } from "../models/RootModel.js";
+import { Role, User, Store } from "../models/RootModel.js";
 
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -12,7 +12,10 @@ passport.use(
   new Strategy(jwtOptions, async (jwt_payload, done) => {
     try {
       const user = await User.findByPk(jwt_payload.id, {
-        include: [{ model: Role, through: { attributes: [] } }],
+        include: [
+          { model: Role, through: { attributes: [] } },
+          { model: Store, attributes: ["id", "store_name"] },
+        ],
       });
       if (!user) return done(null, false);
       return done(null, user.toJSON());
