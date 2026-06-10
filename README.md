@@ -1,6 +1,6 @@
 # UddoktaHut Backend
 
-A robust multi-tenant SaaS e-commerce backend built with Node.js, Express, and Sequelize. This system provides subscription-based store management with customizable templates and comprehensive product management.
+A robust multi-tenant SaaS e-commerce backend built with Node.js, Express, and Sequelize. This system provides subscription-based store management with customizable templates and comprehensive product management system.
 
 ## 🚀 Features
 
