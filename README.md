@@ -26,11 +26,11 @@ A robust multi-tenant SaaS e-commerce backend built with Node.js, Express, and S
 
 ## 📋 Documentation
 
-- **[Architecture Guide](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/ARCHITECTURE.md)** - System design, multi-tenant architecture, and component interactions
-- **[Database Documentation](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/DATABASE.md)** - Complete schema, relationships, and migration strategies
-- **[API Reference](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/API.md)** - Complete API documentation with examples and authentication
-- **[Subscription System](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/SUBSCRIPTION.md)** - Trial management, middleware, and access control details
-- **[Deployment Guide](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)** - Production deployment, Docker setup, and hosting strategies
+- **[Architecture Guide](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/ARCHITECTURE.md)** - System design, multi-tenant architecture, and component interactions
+- **[Database Documentation](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DATABASE.md)** - Complete schema, relationships, and migration strategies
+- **[API Reference](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/API.md)** - Complete API documentation with examples and authentication
+- **[Subscription System](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/SUBSCRIPTION.md)** - Trial management, middleware, and access control details
+- **[Deployment Guide](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)** - Production deployment, Docker setup, and hosting strategies
 
 ## 🏗️ Architecture
 
@@ -47,7 +47,7 @@ User → Store → Products
 Roles  Subscription
 ```
 
-For detailed architecture information, see [ARCHITECTURE.md](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/ARCHITECTURE.md)
+For detailed architecture information, see [ARCHITECTURE.md](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/ARCHITECTURE.md)
 
 ## 🗄️ Database Schema
 
@@ -69,7 +69,7 @@ User → Store → Subscription → Plan
 Store → Products
 ```
 
-For detailed schema documentation, see [DATABASE.md](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/DATABASE.md)
+For detailed schema documentation, see [DATABASE.md](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DATABASE.md)
 
 ## 📚 API Documentation
 
@@ -96,7 +96,7 @@ For detailed schema documentation, see [DATABASE.md](https://github.com/FarhanMa
 
 - `GET /api/subscription/status` - Get user subscription status
 
-For complete API documentation, see [API.md](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/API.md)
+For complete API documentation, see [API.md](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/API.md)
 
 ## 🔧 Installation
 
@@ -111,7 +111,7 @@ For complete API documentation, see [API.md](https://github.com/FarhanMasud07/Ud
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/FarhanMasud07/UddoktaHut-Backend.git
+git clone https://github.com/fmahin7-ship-it/UddoktaHut-Backend.git
 cd UddoktaHut-Backend
 ```
 
@@ -222,7 +222,7 @@ The application uses Sequelize ORM with PostgreSQL. Configuration is managed in 
 - `active` - Paid subscription active
 - `expired` - Subscription/trial ended
 
-For detailed subscription documentation, see [SUBSCRIPTION.md](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/SUBSCRIPTION.md)
+For detailed subscription documentation, see [SUBSCRIPTION.md](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/SUBSCRIPTION.md)
 
 ## 🚀 Deployment
 
@@ -241,7 +241,7 @@ For detailed subscription documentation, see [SUBSCRIPTION.md](https://github.co
 NODE_ENV=production npx sequelize-cli db:migrate
 ```
 
-For complete deployment guide, see [DEPLOYMENT.md](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)
+For complete deployment guide, see [DEPLOYMENT.md](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)
 
 ## 📖 Project Structure
 
@@ -307,11 +307,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Related Documentation
 
-- [Architecture Guide](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/ARCHITECTURE.md)
-- [Database Schema](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/DATABASE.md)
-- [API Reference](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/API.md)
-- [Subscription System](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/SUBSCRIPTION.md)
-- [Deployment Guide](https://github.com/FarhanMasud07/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)
+- [Architecture Guide](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/ARCHITECTURE.md)
+- [Database Schema](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DATABASE.md)
+- [API Reference](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/API.md)
+- [Subscription System](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/SUBSCRIPTION.md)
+- [Deployment Guide](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)
 
 ## 🖥️ Complete Project Repositories
 
@@ -319,7 +319,7 @@ This is part of a **full-stack SaaS e-commerce solution** with separate frontend
 
 ### Backend (Current Repository)
 
-**Repository:** [https://github.com/FarhanMasud07/UddoktaHut-Backend](https://github.com/FarhanMasud07/UddoktaHut-Backend)
+**Repository:** [https://github.com/fmahin7-ship-it/UddoktaHut-Backend](https://github.com/fmahin7-ship-it/UddoktaHut-Backend)
 
 - **Multi-tenant API** - Subscription-based store management
 - **JWT Authentication** - Secure user and role management
@@ -328,7 +328,7 @@ This is part of a **full-stack SaaS e-commerce solution** with separate frontend
 
 ### Frontend Integration
 
-**Repository:** [https://github.com/FarhanMasud07/UddoktaHut](https://github.com/FarhanMasud07/UddoktaHut)
+**Repository:** [https://github.com/fmahin7-ship-it/UddoktaHut](https://github.com/fmahin7-ship-it/UddoktaHut)
 
 - **Multi-store Frontend** - Dynamic store pages based on store templates
 - **Customer Shopping Experience** - Product browsing and purchasing interface

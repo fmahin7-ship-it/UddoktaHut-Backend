@@ -49,7 +49,7 @@ This document provides comprehensive instructions for deploying the UddoktaHut B
 #### 1. Clone Repository
 
 ```bash
-git clone https://github.com/FarhanMasud07/UddoktaHut-Backend.git
+git clone https://github.com/fmahin7-ship-it/UddoktaHut-Backend.git
 cd UddoktaHut-Backend
 ```
 
@@ -187,7 +187,7 @@ sudo -u uddoktahut -i
 
 # Clone application
 cd /var/www/uddoktahut
-git clone https://github.com/FarhanMasud07/UddoktaHut-Backend.git .
+git clone https://github.com/fmahin7-ship-it/UddoktaHut-Backend.git .
 
 # Install dependencies (production only)
 npm ci --only=production
@@ -604,7 +604,7 @@ services:
   - name: api
     source_dir: /
     github:
-      repo: FarhanMasud07/UddoktaHut-Backend
+      repo: fmahin7-ship-it/UddoktaHut-Backend
       branch: main
     run_command: node main.js
     environment_slug: node-js
