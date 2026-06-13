@@ -1,20 +1,50 @@
 import { throwError } from "../../../lib/throwError.js";
 
-const ensureStoreScope = (sql, storeName) => {
+const isLiteralSelect = (sql) => !/\bfrom\b/i.test(sql);
+
+const scopeLiteralSelect = (sql, storeName) => {
   if (sql.includes(storeName)) {
     return sql;
   }
 
   let scoped = sql.trim().replace(/;$/, "");
 
-  if (/\bfrom\s+products\b/i.test(scoped) && !/\bstores\b/i.test(scoped)) {
-    scoped = scoped.replace(
-      /\bfrom\s+products\s+(\w+)?\b/i,
-      (_, alias) => {
-        const productAlias = alias?.trim() || "p";
-        return `FROM products ${productAlias} JOIN stores s ON ${productAlias}.store_id = s.id`;
-      }
+  if (/\blimit\b/i.test(scoped)) {
+    return scoped.replace(
+      /\blimit\b/i,
+      `, '${storeName}' AS store_name LIMIT`
     );
+  }
+
+  return `${scoped}, '${storeName}' AS store_name`;
+};
+
+const ensureStoreScope = (sql, storeName) => {
+  if (sql.includes(storeName)) {
+    return sql;
+  }
+
+  if (isLiteralSelect(sql)) {
+    return scopeLiteralSelect(sql, storeName);
+  }
+
+  let scoped = sql.trim().replace(/;$/, "");
+
+  if (/\bfrom\s+products\b/i.test(scoped) && !/\bstores\b/i.test(scoped)) {
+    scoped = scoped.replace(/\bfrom\s+products\s+(\w+)?\b/i, (_, alias) => {
+      const productAlias = alias?.trim() || "p";
+      return `FROM products ${productAlias} JOIN stores s ON ${productAlias}.store_id = s.id`;
+    });
+  }
+
+  if (!/\bstores\s+s\b/i.test(scoped) && /\bfrom\s+stores\b/i.test(scoped)) {
+    scoped = scoped.replace(/\bfrom\s+stores\s+(\w+)?\b/i, (_, alias) => {
+      const storeAlias = alias?.trim() || "s";
+      if (storeAlias === "s") {
+        return "FROM stores s";
+      }
+      return `FROM stores ${storeAlias}`;
+    });
   }
 
   if (/\bwhere\b/i.test(scoped)) {
@@ -39,4 +69,4 @@ const ensureStoreScope = (sql, storeName) => {
   return scoped;
 };
 
-export { ensureStoreScope };
+export { ensureStoreScope, isLiteralSelect, scopeLiteralSelect };

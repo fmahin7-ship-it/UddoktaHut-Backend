@@ -37,9 +37,11 @@ DATA HONESTY RULES FOR SQL GENERATION:
 3. When a related proxy exists, use honest column aliases only, for example:
    - product_count, category_name, total_stock, avg_price, active_product_count
 4. NEVER use misleading aliases such as: sold, units_sold, total_sold, sales, revenue, profit, orders_count (unless querying subscriptions status only).
-5. If no meaningful proxy can answer the question, return exactly:
+5. If no meaningful proxy can answer the question (e.g. future forecasts, next year predictions), return exactly:
    SELECT 'NOT_AVAILABLE' AS data_status, 'This data is not stored in the system yet' AS message LIMIT 1
-6. ORDER BY proxy metrics DESC when ranking (e.g. highest product_count by category).
+   Do NOT add WHERE clauses or table joins to NOT_AVAILABLE queries.
+6. For subjective ranking without forecast data, prefer an honest current proxy (e.g. highest stock, most products in category) over NOT_AVAILABLE when helpful.
+7. ORDER BY proxy metrics DESC when ranking (e.g. highest product_count by category).
 `;
 
 const SQL_ANALYSIS_DATA_RULES = `
@@ -49,10 +51,10 @@ DATA HONESTY RULES FOR ANSWERING:
 3. If the user asked for sales/revenue/orders but the SQL used product or stock aggregates:
    - Start with: "Sales/order data isn't stored in the system yet."
    - Then offer the available proxy with correct wording, e.g. "Apparel has 40 products in your catalog."
-4. If data_status is NOT_AVAILABLE, explain what is missing and what analytics ARE available instead.
+4. If data_status is NOT_AVAILABLE, explain what is missing (e.g. no sales history, no forecast model) and what analytics ARE available instead (product count, stock, categories).
 5. NEVER say "sold", "revenue", or "sales" unless the SQL and results genuinely represent that (they currently do not).
 6. Do not invent numbers — only use values present in Result data.
-7. For subjective questions ("best", "will shine", "recommend", "top pick"): explain you are using available catalog signals (stock, price, category) as a proxy, not sales performance.
+7. For subjective or future-looking questions ("best performer next year", "will shine"): state that predictions are not available; if proxy data was provided, describe current catalog signals only.
 8. Be concise.
 `;
 
