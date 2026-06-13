@@ -4,6 +4,7 @@ import {
   queryAIStream,
 } from "../controllers/aiController.js";
 import { aiQueryAuth } from "../middleware/aiAccessMiddleware.js";
+import { aiRateLimit } from "../middleware/aiRateLimitMiddleware.js";
 import { validate } from "../middleware/validateMiddleware.js";
 import { setAIStreamingHeaders } from "../middleware/streamingMiddleware.js";
 import { aiQuerySchema } from "../validations/aiValidation.js";
@@ -15,6 +16,7 @@ aiRoutes.get("/health", getServiceHealth);
 aiRoutes.post(
   "/query",
   aiQueryAuth,
+  aiRateLimit,
   setAIStreamingHeaders,
   validate(aiQuerySchema),
   queryAIStream

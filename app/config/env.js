@@ -36,6 +36,11 @@ export const env = {
     process.env.NODE_ENV !== "production" &&
     process.env.AI_DEV_BYPASS === "true",
   AI_DEV_DEFAULT_STORE: process.env.AI_DEV_DEFAULT_STORE || "",
+  AI_RATE_LIMIT_MAX: parseInt(process.env.AI_RATE_LIMIT_MAX || "10", 10),
+  AI_RATE_LIMIT_WINDOW_MS: parseInt(
+    process.env.AI_RATE_LIMIT_WINDOW_MS || "60000",
+    10
+  ),
   isProd: process.env.NODE_ENV === "production",
   isDev: process.env.NODE_ENV === "development",
 };
