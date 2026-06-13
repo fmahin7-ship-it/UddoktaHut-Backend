@@ -1,3 +1,9 @@
+import {
+  buildDataAvailabilityBlock,
+  SQL_GENERATION_DATA_RULES,
+  SQL_ANALYSIS_DATA_RULES,
+} from "./schemaCapabilities.js";
+
 const CHAT_SYSTEM_PROMPT = `You are a helpful AI assistant for UddoktaHut, an e-commerce platform.
 Answer the user's question in a clear and concise manner.
 
@@ -15,7 +21,7 @@ IMPORTANT: When providing these links, use EXACTLY the markdown format above. En
 When discussing UddoktaHut, utilize your knowledge and understanding to provide comprehensive, accurate, and helpful information about the platform's capabilities and services.`;
 
 const SQL_ANALYSIS_SYSTEM_PROMPT = `You are a Business Analyst for UddoktaHut store owners.
-Analyze the provided data and respond STRICTLY in the SAME LANGUAGE as the user's question.
+Analyze the provided SQL and data, then respond STRICTLY in the SAME LANGUAGE as the user's question.
 
 CRITICAL LANGUAGE RULES:
 - If question contains English words like "How", "What", "Show", "products" → RESPOND IN ENGLISH ONLY
@@ -25,9 +31,9 @@ CRITICAL LANGUAGE RULES:
 - NEVER mix languages in your response
 - NEVER assume language - detect it from the actual question text
 
-Analyze the provided data and give insights based on what the data shows.
-If the data array has items, explain what those items represent in the context of the question.
-Be concise and clear with short answers.`;
+${buildDataAvailabilityBlock()}
+
+${SQL_ANALYSIS_DATA_RULES}`;
 
 const databaseSchema = `
 Database Schema (PostgreSQL):
@@ -41,7 +47,6 @@ CRITICAL SCHEMA RESTRICTIONS:
 - ALWAYS use table aliases in JOINs (p for products, s for stores, etc.)
 - ALWAYS specify table names for column references (products.id, stores.id)
 - ONLY generate SELECT queries - NEVER use UPDATE, INSERT, DELETE, CREATE, DROP, ALTER, TRUNCATE
-- If question needs non-existent data, return: "SELECT 'Data not available - requires tables not in schema' as error"
 
 AVAILABLE TABLES ONLY:
 
@@ -98,6 +103,10 @@ You are a SQL expert for an e-commerce business analytics system.
 
 ${databaseSchema}
 
+${buildDataAvailabilityBlock()}
+
+${SQL_GENERATION_DATA_RULES}
+
 CRITICAL SECURITY RULES - NEVER VIOLATE THESE:
 1. ALWAYS include "WHERE store_name = '${safeStoreName}'" for direct stores table queries
 2. For products: JOIN with stores and use "WHERE store_name = '${safeStoreName}'"
@@ -139,11 +148,14 @@ const buildChatPrompt = (question) => ({
   user: `Question: "${question}"`,
 });
 
-const buildSqlAnalysisPrompt = (question, storeName, dbResults) => ({
+const buildSqlAnalysisPrompt = (question, storeName, dbResults, sqlQuery) => ({
   system: SQL_ANALYSIS_SYSTEM_PROMPT,
-  user: `Question: "${question.toLowerCase()}"
+  user: `Question: "${question}"
 Store Name: ${storeName}
-Data: ${JSON.stringify(dbResults)}`,
+SQL executed: ${sqlQuery || "unknown"}
+Result data: ${JSON.stringify(dbResults)}
+
+Answer based only on what the SQL and Result data actually measure.`,
 });
 
 const buildSqlGenerationPrompt = (question, safeStoreName) => ({
@@ -151,7 +163,8 @@ const buildSqlGenerationPrompt = (question, safeStoreName) => ({
   user: `Question: "${question.toLowerCase()}"
 Store Name: ${safeStoreName}
 
-Generate a single SQL query that answers the question for ONLY store "${safeStoreName}".`,
+Generate a single SQL query that answers the question for ONLY store "${safeStoreName}".
+If the question requires data the system does not store, use an honest proxy or return NOT_AVAILABLE.`,
 });
 
 export {

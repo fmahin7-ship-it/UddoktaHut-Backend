@@ -34,6 +34,7 @@ const processSimpleQueryStream = async (question, storeName) => {
       question,
       dbResults,
       storeName,
+      sqlQuery,
     });
 
     const intent = classifyQueryIntent(question);

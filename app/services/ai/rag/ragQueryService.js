@@ -2,6 +2,7 @@ import { classifyQueryIntent } from "../vectorService.js";
 import { queryWithContextStream } from "../provider.js";
 import { throwError } from "../../../lib/throwError.js";
 import { validateBusinessContext } from "../validation/questionValidator.js";
+import { generateSmartBusinessSQL } from "../sql/sqlGenerator.js";
 import { fetchBusinessData } from "../sql/sqlExecutor.js";
 import {
   buildSecurityErrorResponse,
@@ -18,34 +19,39 @@ const processRAGQueryStream = async (question, storeName) => {
       return buildValidationErrorResponse(validation);
     }
 
-    const embedding = await getQuestionEmbedding(question);
     let dbResults = null;
+    let sqlQuery = null;
 
-    if (intent) {
-      try {
-        const { sqlQuery } = await resolveSQLFromEmbedding(
+    try {
+      if (intent) {
+        const embedding = await getQuestionEmbedding(question);
+        ({ sqlQuery } = await resolveSQLFromEmbedding(
           embedding,
           question,
           storeName
-        );
-        dbResults = await fetchBusinessData(sqlQuery, storeName);
-      } catch (error) {
-        if (error.statusCode === 400) {
-          return buildSecurityErrorResponse(error, storeName);
-        }
-        throw error;
+        ));
+      } else {
+        sqlQuery = await generateSmartBusinessSQL(question, storeName);
       }
+
+      dbResults = await fetchBusinessData(sqlQuery, storeName);
+    } catch (error) {
+      if (error.statusCode === 400) {
+        return buildSecurityErrorResponse(error, storeName);
+      }
+      throw error;
     }
 
     const stream = await queryWithContextStream({
       question,
       dbResults,
       storeName,
+      sqlQuery,
     });
 
     return {
       stream,
-      metadata: { intent },
+      metadata: { intent, sqlQuery },
     };
   } catch (error) {
     if (error.statusCode) throw error;

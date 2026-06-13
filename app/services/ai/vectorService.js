@@ -107,6 +107,20 @@ const classifyQueryIntent = (question) => {
   }
 
   if (
+    lowerQuestion.includes("category") ||
+    lowerQuestion.includes("categories") ||
+    lowerQuestion.includes("best selling") ||
+    lowerQuestion.includes("bestselling") ||
+    lowerQuestion.includes("top selling") ||
+    lowerQuestion.includes("sales") ||
+    lowerQuestion.includes("revenue") ||
+    lowerQuestion.includes("selling") ||
+    lowerQuestion.includes("sold")
+  ) {
+    return "sales_analysis";
+  }
+
+  if (
     lowerQuestion.includes("business") ||
     lowerQuestion.includes("overview") ||
     lowerQuestion.includes("ব্যবসা") ||

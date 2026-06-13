@@ -36,9 +36,9 @@ const queryChatStream = (prompt, options) =>
 const queryChatComplete = (prompt, options) =>
   getProvider().completeChat(prompt, options);
 
-const queryWithContextStream = async ({ question, dbResults, storeName }) => {
+const queryWithContextStream = async ({ question, dbResults, storeName, sqlQuery }) => {
   const prompt = dbResults
-    ? buildSqlAnalysisPrompt(question, storeName, dbResults)
+    ? buildSqlAnalysisPrompt(question, storeName, dbResults, sqlQuery)
     : buildChatPrompt(question);
 
   return queryChatStream(prompt);

@@ -1,21 +1,23 @@
 import { forbidden } from "../../../utils/constant.js";
 import { throwError } from "../../../lib/throwError.js";
 
-const buildSecurityThreats = (storeName) => [
-  `store_id != ${storeName}`,
-  `store_id <> ${storeName}`,
-  "store_id in (",
-  "store_id > 0",
-  "store_id >= 1",
-  "store_id is not null",
-  "1=1",
-  "true",
-  "or store_id",
-  "union select",
-  "where 1",
-  "; select",
-  "-- ",
-  "/*",
+const THREAT_PATTERNS = [
+  (sql, storeName) => sql.includes(`store_id != ${storeName}`),
+  (sql, storeName) => sql.includes(`store_id <> ${storeName}`),
+  (sql) => sql.includes("store_id in ("),
+  (sql) => sql.includes("store_id > 0"),
+  (sql) => sql.includes("store_id >= 1"),
+  (sql) => sql.includes("store_id is not null"),
+  (sql) => sql.includes("1=1"),
+  (sql) => /\bwhere\s+true\b/.test(sql),
+  (sql) => /\bor\s+true\b/.test(sql),
+  (sql) => /\band\s+true\b/.test(sql),
+  (sql) => sql.includes("or store_id"),
+  (sql) => sql.includes("union select"),
+  (sql) => /\bwhere\s+1\b/.test(sql),
+  (sql) => sql.includes("; select"),
+  (sql) => sql.includes("-- "),
+  (sql) => sql.includes("/*"),
 ];
 
 const sanitizeGeneratedSQL = (cleanSQL, storeName) => {
@@ -28,8 +30,8 @@ const sanitizeGeneratedSQL = (cleanSQL, storeName) => {
     }
   }
 
-  for (const threat of buildSecurityThreats(storeName)) {
-    if (lowerSQL.includes(threat.toLowerCase())) {
+  for (const matchesThreat of THREAT_PATTERNS) {
+    if (matchesThreat(lowerSQL, storeName)) {
       throwError(
         "Security violation detected: Query may access unauthorized data",
         400
