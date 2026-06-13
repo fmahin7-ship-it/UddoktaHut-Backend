@@ -2,8 +2,11 @@ import {
   processRAGQueryStream,
   processSimpleQueryStream,
 } from "./ragService.js";
-import { checkOllamaStatus } from "./ollamaService.js";
-import { checkEmbeddingModel } from "./embeddingService.js";
+import {
+  checkChatHealth,
+  checkEmbeddingHealth,
+  getActiveProvider,
+} from "./provider.js";
 import { throwError } from "../../lib/throwError.js";
 
 const processAIQueryStream = async (question, storeName, options = {}) => {
@@ -30,10 +33,11 @@ const processAIQueryStream = async (question, storeName, options = {}) => {
       throwError(`AI services unavailable: ${servicesStatus.error}`, 503);
     }
 
-    const useRAG = options.useRAG !== false; // Default to true
+    const useRAG = options.useRAG !== false;
 
-    if (useRAG && servicesStatus.embedding)
+    if (useRAG && servicesStatus.embedding) {
       return await processRAGQueryStream(question, storeName);
+    }
 
     return await processSimpleQueryStream(question, storeName);
   } catch (error) {
@@ -44,25 +48,28 @@ const processAIQueryStream = async (question, storeName, options = {}) => {
 
 const checkAIServices = async () => {
   try {
-    const [ollamaStatus, embeddingStatus] = await Promise.allSettled([
-      checkOllamaStatus(),
-      checkEmbeddingModel(),
+    const provider = getActiveProvider();
+    const [llmStatus, embeddingStatus] = await Promise.allSettled([
+      checkChatHealth(),
+      checkEmbeddingHealth(),
     ]);
 
-    const ollama = ollamaStatus.status === "fulfilled" && ollamaStatus.value;
+    const llm = llmStatus.status === "fulfilled" && llmStatus.value;
     const embedding =
       embeddingStatus.status === "fulfilled" && embeddingStatus.value;
 
     return {
-      available: ollama, // Minimum requirement
-      ollama,
+      available: llm,
+      provider: provider.id,
+      llm,
       embedding,
-      error: !ollama ? "Ollama service not available" : null,
+      error: !llm ? `${provider.id} LLM service not available` : null,
     };
   } catch (error) {
     return {
       available: false,
-      ollama: false,
+      provider: null,
+      llm: false,
       embedding: false,
       error: error.message,
     };
@@ -71,16 +78,19 @@ const checkAIServices = async () => {
 
 const getAIServiceStatus = async () => {
   const status = await checkAIServices();
+  const provider = getActiveProvider();
+
   return {
     timestamp: new Date().toISOString(),
+    provider: provider.id,
     services: {
-      ollama: {
-        available: status.ollama,
-        model: "llama3.1:8b",
+      llm: {
+        available: status.llm,
+        model: provider.chatModel,
       },
       embedding: {
         available: status.embedding,
-        model: "nomic-embed-text",
+        model: provider.embeddingModel,
       },
       vector: {
         available: true,
@@ -89,8 +99,8 @@ const getAIServiceStatus = async () => {
     },
     overallStatus: status.available ? "healthy" : "degraded",
     capabilities: {
-      basicQueries: status.ollama,
-      ragQueries: status.ollama && status.embedding,
+      basicQueries: status.llm,
+      ragQueries: status.llm && status.embedding,
       vectorSearch: true,
     },
   };

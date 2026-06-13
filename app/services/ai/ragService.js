@@ -3,9 +3,12 @@ import {
   generateSQLFromVector,
   classifyQueryIntent,
 } from "./vectorService.js";
-import { queryOllamaStream, queryWithContextStream } from "./ollamaService.js";
+import {
+  generateEmbedding,
+  queryChatComplete,
+  queryWithContextStream,
+} from "./provider.js";
 import { QueryTypes } from "sequelize";
-import { generateEmbedding } from "./embeddingService.js";
 import { sequelize } from "../../config/database.js";
 import { throwError } from "../../lib/throwError.js";
 import {
@@ -13,7 +16,7 @@ import {
   blockedContexts,
   forbidden,
 } from "../../utils/constant.js";
-import { sqlPrompt } from "../../utils/prompt.js";
+import { buildSqlGenerationPrompt } from "../../utils/prompt.js";
 
 const processRAGQueryStream = async (question, storeName) => {
   try {
@@ -21,7 +24,7 @@ const processRAGQueryStream = async (question, storeName) => {
 
     const validation = validateBusinessContext(question);
 
-    if (intent && !validation.isValid) {
+    if (!validation.isValid) {
       return {
         stream: { body: createErrorStream(validation.message) },
         metadata: {
@@ -37,12 +40,28 @@ const processRAGQueryStream = async (question, storeName) => {
     let dbResults = null;
 
     if (intent) {
-      const { sqlQuery } = await getSQLFromEmbedding(
-        embedding,
-        question,
-        storeName
-      );
-      dbResults = await getBusinessData(sqlQuery, storeName);
+      try {
+        const { sqlQuery } = await getSQLFromEmbedding(
+          embedding,
+          question,
+          storeName
+        );
+        dbResults = await getBusinessData(sqlQuery, storeName);
+      } catch (error) {
+        if (error.statusCode === 400) {
+          return {
+            stream: {
+              body: createErrorStream(getSecurityErrorMessage(error, storeName)),
+            },
+            metadata: {
+              intent: "error",
+              sqlQuery: null,
+              errorType: "security",
+            },
+          };
+        }
+        throw error;
+      }
     }
 
     // Return the stream directly from queryWithContext (which now calls queryOllamaStream)
@@ -79,11 +98,29 @@ const processSimpleQueryStream = async (question, storeName) => {
       };
     }
 
-    const sqlQuery = await generateSmartBusinessSQL(question, storeName);
+    let sqlQuery;
+    let dbResults;
 
-    const dbResults = await getBusinessData(sqlQuery, storeName);
+    try {
+      sqlQuery = await generateSmartBusinessSQL(question, storeName);
+      dbResults = await getBusinessData(sqlQuery, storeName);
+    } catch (error) {
+      if (error.statusCode === 400) {
+        return {
+          stream: {
+            body: createErrorStream(getSecurityErrorMessage(error, storeName)),
+          },
+          metadata: {
+            intent: "error",
+            sqlQuery: null,
+            errorType: "security",
+            type: "simple",
+          },
+        };
+      }
+      throw error;
+    }
 
-    // Return the stream directly from queryWithContextStream (which calls queryOllamaStream)
     const stream = await queryWithContextStream({
       question,
       dbResults,
@@ -133,6 +170,7 @@ const getSQLFromEmbedding = async (embedding, question, storeName) => {
       sqlQuery,
     };
   } catch (error) {
+    if (error.statusCode) throw error;
     throwError(`SQL generation failed: ${error.message}`, 500);
   }
 };
@@ -206,6 +244,20 @@ const createErrorStream = (message) => {
   };
 };
 
+const getSecurityErrorMessage = (error, storeName) => {
+  const message = error.message?.toLowerCase() || "";
+
+  if (
+    message.includes("store name") ||
+    message.includes("security") ||
+    message.includes("forbidden")
+  ) {
+    return `I can only access data for your store (${storeName}). I can't show information from other stores or run unsafe queries.`;
+  }
+
+  return error.message;
+};
+
 const validateBusinessContext = (question) => {
   const lowerQuestion = question.toLowerCase();
 
@@ -234,6 +286,12 @@ const validateBusinessContext = (question) => {
   return { isValid: true };
 };
 
+const stripMarkdownFromSql = (content) =>
+  content
+    .replace(/```sql/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
 const generateSmartBusinessSQL = async (question, storeName) => {
   try {
     const safeStoreName = storeName;
@@ -241,19 +299,15 @@ const generateSmartBusinessSQL = async (question, storeName) => {
       throw new Error("Invalid store name");
     }
 
-    const response = await queryOllamaStream(
-      sqlPrompt(question, safeStoreName),
-      "llama3.1:8b",
-      false
+    const rawSqlContent = await queryChatComplete(
+      buildSqlGenerationPrompt(question, safeStoreName)
     );
-
-    const data = await response.json();
-    const sqlContent = data.response || "";
+    const sqlContent = stripMarkdownFromSql(rawSqlContent);
 
     let sqlMatch = sqlContent.match(/SELECT[\s\S]*?(?:;|$)/i);
 
     if (sqlMatch) {
-      let cleanSQL = sqlMatch[0].trim().replace(/;$/, "");
+      let cleanSQL = sqlMatch[0].trim().replace(/;$/, "").replace(/```/g, "").trim();
       const upperSQL = cleanSQL.toUpperCase();
       const lowerSQL = cleanSQL.toLowerCase();
 

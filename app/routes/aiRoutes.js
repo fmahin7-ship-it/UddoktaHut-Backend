@@ -3,7 +3,7 @@ import {
   getServiceHealth,
   queryAIStream,
 } from "../controllers/aiController.js";
-import { authenticateUser } from "../middleware/authMiddleware.js";
+import { aiQueryAuth } from "../middleware/aiAccessMiddleware.js";
 import { validate } from "../middleware/validateMiddleware.js";
 import { setAIStreamingHeaders } from "../middleware/streamingMiddleware.js";
 import { aiQuerySchema } from "../validations/aiValidation.js";
@@ -14,7 +14,7 @@ const aiRoutes = express.Router();
 aiRoutes.get("/health", getServiceHealth);
 aiRoutes.post(
   "/query",
-  // authenticateUser,
+  aiQueryAuth,
   setAIStreamingHeaders,
   validate(aiQuerySchema),
   queryAIStream

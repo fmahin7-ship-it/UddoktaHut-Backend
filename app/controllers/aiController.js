@@ -2,12 +2,12 @@ import {
   getAIServiceStatus,
   processAIQueryStream,
 } from "../services/ai/aiService.js";
+import { resolveAIStoreContext } from "../utils/resolveAIStoreContext.js";
 
 const queryAIStream = async (req, res, next) => {
   try {
     const { question, useRAG } = req.body;
-    const storeName =
-      req.headers["x-store-name"] || req.user?.Store?.store_name || "shoporia";
+    const storeName = resolveAIStoreContext(req);
 
     const result = await processAIQueryStream(question, storeName, { useRAG });
 

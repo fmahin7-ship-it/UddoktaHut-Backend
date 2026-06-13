@@ -23,10 +23,19 @@ export const env = {
   DB_HOST: process.env.DB_HOST,
   DB_PORT: process.env.DB_PORT,
   // AI Configuration
-  OLLAMA_URL: process.env.OLLAMA_URL,
-  AI_MODEL: process.env.AI_MODEL,
-  EMBEDDING_MODEL: process.env.EMBEDDING_MODEL,
-  // OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  AI_PROVIDER: (process.env.AI_PROVIDER || "openai").toLowerCase(),
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  AI_CHAT_MODEL: process.env.AI_CHAT_MODEL || "gpt-4o-mini",
+  AI_EMBEDDING_MODEL:
+    process.env.AI_EMBEDDING_MODEL || "text-embedding-3-small",
+  OLLAMA_URL: process.env.OLLAMA_URL || "http://localhost:11434",
+  OLLAMA_CHAT_MODEL: process.env.OLLAMA_CHAT_MODEL || "llama3.1:8b",
+  OLLAMA_EMBEDDING_MODEL:
+    process.env.OLLAMA_EMBEDDING_MODEL || "nomic-embed-text",
+  AI_DEV_BYPASS:
+    process.env.NODE_ENV !== "production" &&
+    process.env.AI_DEV_BYPASS === "true",
+  AI_DEV_DEFAULT_STORE: process.env.AI_DEV_DEFAULT_STORE || "",
   isProd: process.env.NODE_ENV === "production",
   isDev: process.env.NODE_ENV === "development",
 };

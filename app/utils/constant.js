@@ -189,6 +189,16 @@ const blockedContexts = [
   "خفیہ",
   "چابی",
 
+  // Cross-store access - English
+  "other store",
+  "other stores",
+  "another store",
+  "another stores",
+  "all stores",
+  "every store",
+  "different store",
+  "competitor store",
+
   // System operations
   "system",
   "database",
