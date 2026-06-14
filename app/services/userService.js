@@ -14,6 +14,7 @@ import { env } from "../config/env.js";
 import { User, Store } from "../models/RootModel.js";
 import nodemailer from "nodemailer";
 import { generateTokens } from "./commonService.js";
+import { slugifyStoreName, buildStoreUrl } from "../utils/storeUrl.js";
 
 //https://accounts.zoho.com/oauth/v2/auth?scope=ZohoMail.accounts.READ,ZohoMail.messages.CREATE&client_id=1000.I6ZNQQJB3BARTHKXYP5O8M5ZSAFFSC&response_type=code&access_type=offline&redirect_uri=https://uddoktahut.com
 // https://accounts.zoho.com/oauth/v2/auth?scope=ZohoMail.messages.CREATE&client_id=1000.I6ZNQQJB3BARTHKXYP5O8M5ZSAFFSC&response_type=code&access_type=offline&redirect_uri=https://uddoktahut.com
@@ -265,12 +266,16 @@ function generateFinalTokenAfterOnboarded(validUser, roles, store, onboarded) {
 }
 
 const assignRoleToUserAndCreateStore = async (data) => {
-  const { userId, roles, storeName, storeAddress, storeType, storeUrl } = data;
+  const { userId, roles, storeName, storeAddress, storeType } = data;
+  const storeSlug = slugifyStoreName(storeName);
+  if (!storeSlug) throw new Error("Invalid business name");
+
+  const resolvedStoreUrl = buildStoreUrl(storeSlug);
   const transaction = await sequelize.transaction();
 
   try {
     const existStore = await Store.findOne({
-      where: { store_name: storeName },
+      where: { store_name: storeSlug },
       transaction,
     });
     if (existStore) throw new Error("This (business/store) name already exist");
@@ -294,10 +299,10 @@ const assignRoleToUserAndCreateStore = async (data) => {
     const store = await createStoreAndSubscription(
       validUser.id,
       {
-        store_name: storeName,
+        store_name: storeSlug,
         store_address: storeAddress,
         store_type: storeType,
-        store_url: storeUrl,
+        store_url: resolvedStoreUrl,
       },
       transaction
     );
@@ -305,10 +310,10 @@ const assignRoleToUserAndCreateStore = async (data) => {
     await transaction.commit();
 
     const storePayload = {
-      store_name: storeName,
+      store_name: storeSlug,
       store_address: storeAddress,
       store_type: storeType,
-      store_url: storeUrl,
+      store_url: resolvedStoreUrl,
     };
 
     if (userRoles?.length && store)

@@ -13,7 +13,7 @@ const userRolesAndStoreSchema = z.object({
         .min(1, { message: "Role ID must be a positive integer." })
     )
     .nonempty({ message: "Atleast one role needed" }),
-  storeName: z.string({ message: "Store name is required" }),
+  storeName: z.string({ message: "Store name is required" }).min(1),
   storeType: z.string({ message: "Store type is required" }),
   storeAddress: z.string().optional(),
 });

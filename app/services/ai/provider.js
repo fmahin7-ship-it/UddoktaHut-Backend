@@ -41,7 +41,7 @@ const queryWithContextStream = async ({ question, dbResults, storeName, sqlQuery
     ? buildSqlAnalysisPrompt(question, storeName, dbResults, sqlQuery)
     : buildChatPrompt(question);
 
-  return queryChatStream(prompt);
+  return queryChatStream(prompt, { traceName: "analysis-stream" });
 };
 
 const generateEmbedding = async (text) => {

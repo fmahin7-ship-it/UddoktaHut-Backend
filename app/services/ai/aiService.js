@@ -36,10 +36,10 @@ const processAIQueryStream = async (question, storeName, options = {}) => {
     const useRAG = options.useRAG !== false;
 
     if (useRAG && servicesStatus.embedding) {
-      return await processRAGQueryStream(question, storeName);
+      return processRAGQueryStream(question, storeName);
     }
 
-    return await processSimpleQueryStream(question, storeName);
+    return processSimpleQueryStream(question, storeName);
   } catch (error) {
     if (error.statusCode) throw error;
     throwError(`AI query processing failed: ${error.message}`, 500);

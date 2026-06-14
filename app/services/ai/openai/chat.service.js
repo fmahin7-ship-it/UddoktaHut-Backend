@@ -1,4 +1,5 @@
 import { throwError } from "../../../lib/throwError.js";
+import { getActiveTrace } from "../observability/aiTrace.js";
 import { CHAT_MODEL, getOpenAIClient } from "./client.js";
 
 const CHAT_DEFAULTS = { temperature: 0.3, max_tokens: 300 };
@@ -17,8 +18,25 @@ const toMessages = (input) => {
   return messages;
 };
 
-const toCompatibleStream = (openaiStream) => {
+const toUsage = (usage) => {
+  if (!usage) {
+    return undefined;
+  }
+
+  return {
+    promptTokens: usage.prompt_tokens,
+    completionTokens: usage.completion_tokens,
+    totalTokens: usage.total_tokens,
+  };
+};
+
+const toCompatibleStream = (openaiStream, generation, trace) => {
   const encoder = new TextEncoder();
+  let fullOutput = "";
+  let resolveComplete;
+  const completed = new Promise((resolve) => {
+    resolveComplete = resolve;
+  });
 
   const body = new ReadableStream({
     async start(controller) {
@@ -26,26 +44,51 @@ const toCompatibleStream = (openaiStream) => {
         for await (const chunk of openaiStream) {
           const text = chunk.choices[0]?.delta?.content;
           if (text) {
+            fullOutput += text;
             controller.enqueue(
               encoder.encode(`${JSON.stringify({ response: text })}\n`)
             );
           }
         }
 
+        generation?.end({ output: fullOutput });
+        trace?.update({
+          output: {
+            answerPreview: fullOutput.slice(0, 500),
+          },
+        });
+
         controller.enqueue(
           encoder.encode(`${JSON.stringify({ response: "", done: true })}\n`)
         );
         controller.close();
       } catch (error) {
+        generation?.end({
+          output: { error: error.message },
+          level: "ERROR",
+        });
         controller.error(error);
+      } finally {
+        resolveComplete();
       }
     },
   });
 
-  return { body };
+  return { body, completed };
 };
 
-const streamChat = async (input, { model = CHAT_MODEL, ...options } = {}) => {
+const streamChat = async (
+  input,
+  { model = CHAT_MODEL, traceName = "analysis-stream", ...options } = {}
+) => {
+  const trace = getActiveTrace();
+  const generation = trace?.generation({
+    name: traceName,
+    model,
+    input,
+    modelParameters: CHAT_DEFAULTS,
+  });
+
   try {
     const stream = await getOpenAIClient().chat.completions.create({
       model,
@@ -55,13 +98,28 @@ const streamChat = async (input, { model = CHAT_MODEL, ...options } = {}) => {
       ...options,
     });
 
-    return toCompatibleStream(stream);
+    return toCompatibleStream(stream, generation, trace);
   } catch (error) {
+    generation?.end({
+      output: { error: error.message },
+      level: "ERROR",
+    });
     throwError(`OpenAI chat stream failed: ${error.message}`, 503);
   }
 };
 
-const completeChat = async (input, { model = CHAT_MODEL, ...options } = {}) => {
+const completeChat = async (
+  input,
+  { model = CHAT_MODEL, traceName = "chat-complete", ...options } = {}
+) => {
+  const trace = getActiveTrace();
+  const generation = trace?.generation({
+    name: traceName,
+    model,
+    input,
+    modelParameters: SQL_DEFAULTS,
+  });
+
   try {
     const response = await getOpenAIClient().chat.completions.create({
       model,
@@ -71,8 +129,19 @@ const completeChat = async (input, { model = CHAT_MODEL, ...options } = {}) => {
       ...options,
     });
 
-    return response.choices[0]?.message?.content?.trim() || "";
+    const content = response.choices[0]?.message?.content?.trim() || "";
+
+    generation?.end({
+      output: content,
+      usage: toUsage(response.usage),
+    });
+
+    return content;
   } catch (error) {
+    generation?.end({
+      output: { error: error.message },
+      level: "ERROR",
+    });
     throwError(`OpenAI chat completion failed: ${error.message}`, 503);
   }
 };

@@ -41,6 +41,11 @@ export const env = {
     process.env.AI_RATE_LIMIT_WINDOW_MS || "60000",
     10
   ),
+  LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY || "",
+  LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY || "",
+  LANGFUSE_BASE_URL:
+    process.env.LANGFUSE_BASE_URL || "https://jp.cloud.langfuse.com",
+  LANGFUSE_ENABLED: process.env.LANGFUSE_ENABLED === "true",
   isProd: process.env.NODE_ENV === "production",
   isDev: process.env.NODE_ENV === "development",
 };

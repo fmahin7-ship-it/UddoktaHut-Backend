@@ -1,27 +1,57 @@
 import {
+  checkAIServices,
   getAIServiceStatus,
   processAIQueryStream,
 } from "../services/ai/aiService.js";
+import { runWithAITrace } from "../services/ai/observability/aiTrace.js";
+import {
+  fetchRecentTraceCount,
+  isLangfuseEnabled,
+} from "../services/ai/observability/langfuseClient.js";
 import { resolveAIStoreContext } from "../utils/resolveAIStoreContext.js";
 
 const queryAIStream = async (req, res, next) => {
   try {
     const { question, useRAG } = req.body;
     const storeName = resolveAIStoreContext(req);
+    const servicesStatus = await checkAIServices();
 
-    const result = await processAIQueryStream(question, storeName, { useRAG });
+    await runWithAITrace(
+      {
+        question,
+        storeName,
+        userId: req.user?.id,
+        provider: servicesStatus.provider,
+        useRAG: useRAG !== false,
+      },
+      async () => {
+        const result = await processAIQueryStream(question, storeName, {
+          useRAG,
+        });
 
-    if (!result.stream) {
-      res.write(result.data.answer);
-      res.end();
-      return;
-    }
+        if (!result.stream) {
+          res.write(result.data?.answer ?? result.metadata?.message ?? "");
+          res.end();
+          return result;
+        }
 
-    const stream = result.stream;
-    await streamTheData(stream, res);
+        const answerPreview = await pipeStreamToResponse(result.stream, res);
+        return { ...result, answerPreview };
+      }
+    );
   } catch (err) {
     next(err);
   }
+};
+
+const getTracingDebug = async (req, res) => {
+  const stats = await fetchRecentTraceCount();
+  res.json({
+    enabled: isLangfuseEnabled(),
+    dashboard: "https://jp.cloud.langfuse.com",
+    hint: "Open Tracing → Traces, set time filter to Last 24 hours, search name ai-query",
+    stats,
+  });
 };
 
 const getServiceHealth = async (req, res, next) => {
@@ -37,44 +67,46 @@ const getServiceHealth = async (req, res, next) => {
   }
 };
 
-async function streamTheData(stream, res) {
+async function pipeStreamToResponse(stream, res) {
   const reader = stream.body.getReader();
   const decoder = new TextDecoder();
+  let answerPreview = "";
 
   try {
     while (true) {
       const { done, value } = await reader.read();
-
       if (done) break;
 
       const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
+      for (const line of chunk.split("\n")) {
+        if (!line.trim()) continue;
 
-      for (const line of lines) {
-        if (line.trim()) {
-          try {
-            const data = JSON.parse(line);
-            if (data.response) {
-              // Send each token to the client
+        try {
+          const data = JSON.parse(line);
+          if (data.response) {
+            answerPreview += data.response;
+            if (!res.writableEnded) {
               res.write(data.response);
             }
-            if (data.done) {
-              res.end();
-              return;
-            }
-          } catch (e) {
-            // Skip invalid JSON lines
           }
+        } catch {
+          // Skip invalid JSON lines
         }
       }
     }
   } catch (error) {
     console.error("Streaming error:", error);
-    res.end();
   } finally {
     reader.releaseLock();
-    res.end();
+    if (stream.completed) {
+      await stream.completed;
+    }
+    if (!res.writableEnded) {
+      res.end();
+    }
   }
+
+  return answerPreview.slice(0, 500);
 }
 
-export { queryAIStream, getServiceHealth };
+export { queryAIStream, getServiceHealth, getTracingDebug };

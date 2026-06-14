@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getServiceHealth,
+  getTracingDebug,
   queryAIStream,
 } from "../controllers/aiController.js";
 import { aiQueryAuth } from "../middleware/aiAccessMiddleware.js";
@@ -13,6 +14,7 @@ const aiRoutes = express.Router();
 
 // Custom implementation endpoints
 aiRoutes.get("/health", getServiceHealth);
+aiRoutes.get("/tracing-debug", getTracingDebug);
 aiRoutes.post(
   "/query",
   aiQueryAuth,

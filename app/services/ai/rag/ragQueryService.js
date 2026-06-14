@@ -9,13 +9,25 @@ import {
   buildValidationErrorResponse,
 } from "./queryResponse.js";
 import { getQuestionEmbedding, resolveSQLFromEmbedding } from "./embeddingResolver.js";
+import { updateActiveTrace, withSpan } from "../observability/aiTrace.js";
 
 const processRAGQueryStream = async (question, storeName) => {
   try {
     const intent = classifyQueryIntent(question);
-    const validation = validateBusinessContext(question);
+
+    const validation = await withSpan(
+      "validate-context",
+      { question },
+      async () => validateBusinessContext(question)
+    );
 
     if (!validation.isValid) {
+      updateActiveTrace({
+        output: {
+          errorType: validation.errorType,
+          message: validation.message,
+        },
+      });
       return buildValidationErrorResponse(validation);
     }
 
@@ -23,20 +35,29 @@ const processRAGQueryStream = async (question, storeName) => {
     let sqlQuery = null;
 
     try {
-      if (intent) {
-        const embedding = await getQuestionEmbedding(question);
-        ({ sqlQuery } = await resolveSQLFromEmbedding(
-          embedding,
-          question,
-          storeName
-        ));
-      } else {
-        sqlQuery = await generateSmartBusinessSQL(question, storeName);
-      }
+      await withSpan("resolve-sql", { intent }, async () => {
+        if (intent) {
+          const embedding = await withSpan(
+            "generate-embedding",
+            { question },
+            async () => getQuestionEmbedding(question)
+          );
+          ({ sqlQuery } = await resolveSQLFromEmbedding(
+            embedding,
+            question,
+            storeName
+          ));
+        } else {
+          sqlQuery = await generateSmartBusinessSQL(question, storeName);
+        }
 
-      dbResults = await fetchBusinessData(sqlQuery, storeName);
+        dbResults = await fetchBusinessData(sqlQuery, storeName);
+      });
     } catch (error) {
       if (error.statusCode === 400) {
+        updateActiveTrace({
+          output: { error: error.message, errorType: "security" },
+        });
         return buildSecurityErrorResponse(error, storeName);
       }
       throw error;

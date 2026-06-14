@@ -1,6 +1,7 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../../../config/database.js";
 import { throwError } from "../../../lib/throwError.js";
+import { withSpan } from "../observability/aiTrace.js";
 
 const QUERY_TIMEOUT_MS = 5000;
 
@@ -36,8 +37,13 @@ const executeSecureSQL = async (sqlQuery, storeName) => {
 
 const fetchBusinessData = async (sqlQuery, storeName) => {
   try {
-    return await executeSecureSQL(sqlQuery, storeName);
+    return await withSpan(
+      "postgres-query",
+      { sqlQuery, storeName },
+      async () => executeSecureSQL(sqlQuery, storeName)
+    );
   } catch (error) {
+    if (error.statusCode) throw error;
     throwError(`Data retrieval failed: ${error.message}`, 500);
   }
 };

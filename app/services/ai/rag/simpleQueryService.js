@@ -8,12 +8,23 @@ import {
   buildSecurityErrorResponse,
   buildValidationErrorResponse,
 } from "./queryResponse.js";
+import { updateActiveTrace, withSpan } from "../observability/aiTrace.js";
 
 const processSimpleQueryStream = async (question, storeName) => {
   try {
-    const validation = validateBusinessContext(question);
+    const validation = await withSpan(
+      "validate-context",
+      { question },
+      async () => validateBusinessContext(question)
+    );
 
     if (!validation.isValid) {
+      updateActiveTrace({
+        output: {
+          errorType: validation.errorType,
+          message: validation.message,
+        },
+      });
       return buildValidationErrorResponse(validation, { type: "simple" });
     }
 
@@ -21,10 +32,15 @@ const processSimpleQueryStream = async (question, storeName) => {
     let dbResults;
 
     try {
-      sqlQuery = await generateSmartBusinessSQL(question, storeName);
-      dbResults = await fetchBusinessData(sqlQuery, storeName);
+      await withSpan("resolve-sql", { type: "simple" }, async () => {
+        sqlQuery = await generateSmartBusinessSQL(question, storeName);
+        dbResults = await fetchBusinessData(sqlQuery, storeName);
+      });
     } catch (error) {
       if (error.statusCode === 400) {
+        updateActiveTrace({
+          output: { error: error.message, errorType: "security" },
+        });
         return buildSecurityErrorResponse(error, storeName, { type: "simple" });
       }
       throw error;

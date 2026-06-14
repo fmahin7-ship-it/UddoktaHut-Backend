@@ -12,7 +12,8 @@ const generateSmartBusinessSQL = async (question, storeName) => {
     }
 
     const rawSqlContent = await queryChatComplete(
-      buildSqlGenerationPrompt(question, storeName)
+      buildSqlGenerationPrompt(question, storeName),
+      { traceName: "sql-generation" }
     );
     const sqlContent = stripMarkdownFromSql(rawSqlContent);
     const selectStatement = extractSelectStatement(sqlContent);
