@@ -7,6 +7,10 @@ import Store from "./Store.js";
 import Subscription from "./Subscription.js";
 import Plan from "./Plan.js";
 import Product from "./Product.js";
+import Order from "./Order.js";
+import OrderItem from "./OrderItem.js";
+import OrderReturn from "./OrderReturn.js";
+import OrderReturnItem from "./OrderReturnItem.js";
 
 // USER_ROLE (MANY TO MANY)
 User.belongsToMany(Role, {
@@ -58,6 +62,36 @@ Subscription.belongsTo(Store, {
   onDelete: "CASCADE",
 });
 
+Store.hasMany(Order, { foreignKey: "store_id", onDelete: "CASCADE" });
+Order.belongsTo(Store, { foreignKey: "store_id", onDelete: "CASCADE" });
+
+Order.hasMany(OrderItem, { foreignKey: "order_id", onDelete: "CASCADE" });
+OrderItem.belongsTo(Order, { foreignKey: "order_id", onDelete: "CASCADE" });
+OrderItem.belongsTo(Product, { foreignKey: "product_id" });
+Product.hasMany(OrderItem, { foreignKey: "product_id" });
+
+Order.hasMany(OrderReturn, { foreignKey: "order_id", onDelete: "CASCADE" });
+OrderReturn.belongsTo(Order, { foreignKey: "order_id", onDelete: "CASCADE" });
+Store.hasMany(OrderReturn, { foreignKey: "store_id", onDelete: "CASCADE" });
+OrderReturn.belongsTo(Store, { foreignKey: "store_id", onDelete: "CASCADE" });
+
+OrderReturn.hasMany(OrderReturnItem, {
+  foreignKey: "return_id",
+  onDelete: "CASCADE",
+});
+OrderReturnItem.belongsTo(OrderReturn, {
+  foreignKey: "return_id",
+  onDelete: "CASCADE",
+});
+OrderReturnItem.belongsTo(OrderItem, {
+  foreignKey: "order_item_id",
+  onDelete: "CASCADE",
+});
+OrderItem.hasMany(OrderReturnItem, {
+  foreignKey: "order_item_id",
+  onDelete: "CASCADE",
+});
+
 const syncSequlizeBasedOnEnvironment = async () => {
   await sequelize.authenticate();
   console.log("✅ Database connected successfully.");
@@ -89,4 +123,8 @@ export {
   Subscription,
   Plan,
   Product,
+  Order,
+  OrderItem,
+  OrderReturn,
+  OrderReturnItem,
 };

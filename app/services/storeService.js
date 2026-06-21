@@ -1,4 +1,5 @@
 import { paginateQuery } from "../lib/pagination.js";
+import { PRODUCT_STATUS } from "../constants/productConstants.js";
 import { Store, Product } from "../models/RootModel.js";
 
 const getStoreProducts = async (storeName, query) => {
@@ -24,7 +25,7 @@ const getStoreProducts = async (storeName, query) => {
         attributes: [],
       },
     ],
-    where: { status: "Active" },
+    where: { status: PRODUCT_STATUS.ACTIVE },
   });
 
   const products = result.data.map((product) => {

@@ -146,4 +146,78 @@ const completeChat = async (
   }
 };
 
-export { streamChat, completeChat };
+const TOOL_DEFAULTS = { temperature: 0.2, max_tokens: 500 };
+
+const completeChatWithTools = async (
+  messages,
+  tools,
+  { model = CHAT_MODEL, traceName = "copilot-tools", ...options } = {}
+) => {
+  const trace = getActiveTrace();
+  const generation = trace?.generation({
+    name: traceName,
+    model,
+    input: messages,
+    modelParameters: TOOL_DEFAULTS,
+  });
+
+  try {
+    const response = await getOpenAIClient().chat.completions.create({
+      model,
+      messages,
+      tools,
+      tool_choice: "auto",
+      stream: false,
+      ...TOOL_DEFAULTS,
+      ...options,
+    });
+
+    const message = response.choices[0]?.message;
+
+    generation?.end({
+      output: message,
+      usage: toUsage(response.usage),
+    });
+
+    return message;
+  } catch (error) {
+    generation?.end({
+      output: { error: error.message },
+      level: "ERROR",
+    });
+    throwError(`OpenAI tool completion failed: ${error.message}`, 503);
+  }
+};
+
+const streamChatMessages = async (
+  messages,
+  { model = CHAT_MODEL, traceName = "copilot-stream", ...options } = {}
+) => {
+  const trace = getActiveTrace();
+  const generation = trace?.generation({
+    name: traceName,
+    model,
+    input: messages,
+    modelParameters: CHAT_DEFAULTS,
+  });
+
+  try {
+    const stream = await getOpenAIClient().chat.completions.create({
+      model,
+      messages,
+      stream: true,
+      ...CHAT_DEFAULTS,
+      ...options,
+    });
+
+    return toCompatibleStream(stream, generation, trace);
+  } catch (error) {
+    generation?.end({
+      output: { error: error.message },
+      level: "ERROR",
+    });
+    throwError(`OpenAI message stream failed: ${error.message}`, 503);
+  }
+};
+
+export { streamChat, completeChat, completeChatWithTools, streamChatMessages };

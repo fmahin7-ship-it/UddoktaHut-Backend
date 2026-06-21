@@ -1,6 +1,10 @@
 import { allowedContexts, blockedContexts } from "../../../utils/constant.js";
 
-const validateBusinessContext = (question) => {
+/**
+ * Authenticated store copilot: block-list only (security).
+ * Allow-list keywords skipped when storeName is present — intent + tools handle routing.
+ */
+const validateBusinessContext = (question, { storeName } = {}) => {
   const lowerQuestion = question.toLowerCase();
 
   for (const blocked of blockedContexts) {
@@ -13,6 +17,11 @@ const validateBusinessContext = (question) => {
     }
   }
 
+  if (storeName?.trim()) {
+    return { isValid: true };
+  }
+
+  // If no store context, require at least one allowed keyword to ensure relevance.
   const hasAllowedContext = allowedContexts.some((context) =>
     lowerQuestion.includes(context)
   );

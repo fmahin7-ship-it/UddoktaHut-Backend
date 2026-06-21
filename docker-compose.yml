@@ -1,0 +1,23 @@
+﻿# Dev DB — align DB_* in .env with .env.docker.example
+# Fresh setup: npm run db:setup  (or db:up → db:sync-dev → seed-intent-utterances)
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: uddoktahut-pg
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: uddoktahut
+    ports:
+      - "5432:5432"
+    volumes:
+      - uddoktahut_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d uddoktahut"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  uddoktahut_pgdata:

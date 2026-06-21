@@ -46,6 +46,33 @@ export const env = {
   LANGFUSE_BASE_URL:
     process.env.LANGFUSE_BASE_URL || "https://jp.cloud.langfuse.com",
   LANGFUSE_ENABLED: process.env.LANGFUSE_ENABLED === "true",
+  /** Tool calling copilot (OpenAI). When false, /ai/query returns 503. */
+  AI_USE_TOOLS: process.env.AI_USE_TOOLS !== "false",
+  /** Intent resolution (embed + pgvector) before copilot tool loop. */
+  AI_INTENT_RESOLUTION:
+    process.env.AI_INTENT_RESOLUTION !== "false" &&
+    process.env.AI_USE_VECTOR_ROUTING !== "false",
+  AI_INTENT_TOP_K: parseInt(
+    process.env.AI_INTENT_TOP_K || process.env.AI_ROUTING_TOP_K || "3",
+    10
+  ),
+  AI_INTENT_MIN_CONFIDENCE: parseFloat(
+    process.env.AI_INTENT_MIN_CONFIDENCE ||
+      process.env.AI_ROUTING_SIMILARITY_THRESHOLD ||
+      "0.72"
+  ),
+  /** Tiered tool exposure: high / medium / full (see applyIntentPolicy). */
+  AI_INTENT_TIERED: process.env.AI_INTENT_TIERED !== "false",
+  AI_INTENT_HIGH_CONFIDENCE: parseFloat(
+    process.env.AI_INTENT_HIGH_CONFIDENCE || "0.85"
+  ),
+  /** Max tools exposed in medium-confidence tier. */
+  AI_INTENT_MEDIUM_MAX_TOOLS: parseInt(
+    process.env.AI_INTENT_MEDIUM_MAX_TOOLS || "2",
+    10
+  ),
+  /** High-confidence tier: run matched tool before LLM (skip tool-pick round). */
+  AI_INTENT_AUTO_RUN: process.env.AI_INTENT_AUTO_RUN !== "false",
   isProd: process.env.NODE_ENV === "production",
   isDev: process.env.NODE_ENV === "development",
 };

@@ -1,5 +1,4 @@
 import { env } from "../../config/env.js";
-import { buildChatPrompt, buildSqlAnalysisPrompt } from "../../utils/prompt.js";
 import * as ollama from "./ollama/index.js";
 import * as openai from "./openai/index.js";
 
@@ -30,20 +29,6 @@ const getActiveProvider = () => {
   };
 };
 
-const queryChatStream = (prompt, options) =>
-  getProvider().streamChat(prompt, options);
-
-const queryChatComplete = (prompt, options) =>
-  getProvider().completeChat(prompt, options);
-
-const queryWithContextStream = async ({ question, dbResults, storeName, sqlQuery }) => {
-  const prompt = dbResults
-    ? buildSqlAnalysisPrompt(question, storeName, dbResults, sqlQuery)
-    : buildChatPrompt(question);
-
-  return queryChatStream(prompt, { traceName: "analysis-stream" });
-};
-
 const generateEmbedding = async (text) => {
   if (embeddingCache.has(text)) {
     return embeddingCache.get(text);
@@ -64,12 +49,30 @@ const checkChatHealth = () => getProvider().isChatHealthy();
 
 const checkEmbeddingHealth = () => getProvider().isEmbeddingHealthy();
 
+const supportsToolCalling = () => Boolean(getProvider().completeChatWithTools);
+
+const completeChatWithTools = (messages, tools, options) => {
+  const provider = getProvider();
+  if (!provider.completeChatWithTools) {
+    throw new Error(`Tool calling is not supported for provider "${provider.id}"`);
+  }
+  return provider.completeChatWithTools(messages, tools, options);
+};
+
+const streamChatMessages = (messages, options) => {
+  const provider = getProvider();
+  if (!provider.streamChatMessages) {
+    throw new Error(`Message streaming is not supported for provider "${provider.id}"`);
+  }
+  return provider.streamChatMessages(messages, options);
+};
+
 export {
   getActiveProvider,
-  queryChatStream,
-  queryChatComplete,
-  queryWithContextStream,
   generateEmbedding,
   checkChatHealth,
   checkEmbeddingHealth,
+  supportsToolCalling,
+  completeChatWithTools,
+  streamChatMessages,
 };

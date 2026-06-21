@@ -34,6 +34,8 @@ const setCookieAccessRefreshToken = (res, verifiedTokens) => {
 
   if (env.isProd) {
     cookieOption.domain = ".uddoktahut.com";
+  } else if (env.isDev) {
+    cookieOption.domain = ".uddoktahut.local";
   }
 
   res.cookie("accessToken", accessToken, cookieOption);
@@ -50,6 +52,8 @@ const clearCookie = (res) => {
   };
   if (env.isProd) {
     cookieOption.domain = ".uddoktahut.com";
+  } else if (env.isDev) {
+    cookieOption.domain = ".uddoktahut.local";
   }
   res.clearCookie("accessToken", cookieOption);
   res.clearCookie("refreshToken", cookieOption);

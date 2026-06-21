@@ -1,7 +1,13 @@
 "use strict";
 
+const { columnExists } = require("./helpers/schemaChecks.cjs");
+
 module.exports = {
   async up(queryInterface, Sequelize) {
+    if (await columnExists(queryInterface, "products", "user_id")) {
+      return;
+    }
+
     await queryInterface.addColumn("products", "user_id", {
       type: Sequelize.INTEGER,
       allowNull: false,
@@ -13,7 +19,10 @@ module.exports = {
       onDelete: "CASCADE",
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
+    if (!(await columnExists(queryInterface, "products", "user_id"))) {
+      return;
+    }
     await queryInterface.removeColumn("products", "user_id");
   },
 };

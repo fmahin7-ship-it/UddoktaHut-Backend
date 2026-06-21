@@ -1,16 +1,36 @@
 "use strict";
 
+const { indexExists } = require("./helpers/schemaChecks.cjs");
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
-    await queryInterface.addIndex("products", ["name"]);
-    await queryInterface.addIndex("products", ["category"]);
-    await queryInterface.addIndex("products", ["sku"]);
+  async up(queryInterface) {
+    const indexes = [
+      ["name"],
+      ["category"],
+      ["sku"],
+    ];
+
+    for (const fields of indexes) {
+      if (await indexExists(queryInterface, "products", fields)) {
+        continue;
+      }
+      await queryInterface.addIndex("products", fields);
+    }
   },
 
-  async down(queryInterface, Sequelize) {
-    await queryInterface.removeIndex("products", ["name"]);
-    await queryInterface.removeIndex("products", ["category"]);
-    await queryInterface.removeIndex("products", ["sku"]);
+  async down(queryInterface) {
+    const indexes = [
+      ["name"],
+      ["category"],
+      ["sku"],
+    ];
+
+    for (const fields of indexes) {
+      if (!(await indexExists(queryInterface, "products", fields))) {
+        continue;
+      }
+      await queryInterface.removeIndex("products", fields);
+    }
   },
 };

@@ -9,7 +9,9 @@ import {
   updateTemplate,
   getOwnerStore,
 } from "../controllers/storeController.js";
+import { placeStoreOrder } from "../controllers/orderController.js";
 import { paginationQuerySchema } from "../validations/paginationSchema.js";
+import { createOrderSchema } from "../validations/orderSchema.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
 import {
   checkOwnerSubscription,
@@ -25,6 +27,14 @@ storeRoutes.get(
   checkStoreSubscription,
   validate(paginationQuerySchema, "query"),
   getPublicStoreProducts
+);
+
+storeRoutes.post(
+  "/:storeName/orders",
+  validate(storeSchema, "params"),
+  checkStoreSubscription,
+  validate(createOrderSchema, "body"),
+  placeStoreOrder
 );
 
 storeRoutes.get(

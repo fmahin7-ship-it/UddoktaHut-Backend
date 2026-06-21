@@ -22,7 +22,7 @@ const queryAIStream = async (req, res, next) => {
         storeName,
         userId: req.user?.id,
         provider: servicesStatus.provider,
-        useRAG: useRAG !== false,
+        useRAG: false, // FUTURE Phase 2: vector routing flag
       },
       async () => {
         const result = await processAIQueryStream(question, storeName, {
