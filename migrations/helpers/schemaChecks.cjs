@@ -1,6 +1,14 @@
 "use strict";
 
 /** @param {import('sequelize').QueryInterface} queryInterface */
+async function tableExists(queryInterface, tableName) {
+  const tables = await queryInterface.showAllTables();
+  return tables.some(
+    (table) => String(table).toLowerCase() === tableName.toLowerCase()
+  );
+}
+
+/** @param {import('sequelize').QueryInterface} queryInterface */
 async function columnExists(queryInterface, tableName, columnName) {
   const table = await queryInterface.describeTable(tableName);
   return Object.prototype.hasOwnProperty.call(table, columnName);
@@ -20,6 +28,7 @@ async function indexExists(queryInterface, tableName, fields) {
 }
 
 module.exports = {
+  tableExists,
   columnExists,
   indexExists,
 };
