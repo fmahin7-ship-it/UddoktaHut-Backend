@@ -71,6 +71,92 @@ const TOOL_DEFINITIONS = [
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_order_summary",
+      description:
+        "Order and sales aggregates for the store: order count, revenue, average order value, and counts by status (pending, confirmed, delivered, cancelled). Use for sales, revenue, and order volume questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: {
+            type: "string",
+            enum: ["today", "7d", "30d", "all"],
+            description: "Time window (default 30d)",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_recent_orders",
+      description:
+        "List the most recent customer orders with order number, customer, total, status, and date. Use for latest orders or order list questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "integer",
+            description: "Max rows (1-20, default 10)",
+          },
+          status: {
+            type: "string",
+            description:
+              "Optional order status filter: pending, confirmed, shipped, delivered, cancelled, partially_returned, returned",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_top_selling_products",
+      description:
+        "Best-selling products by units sold and revenue from completed orders in a time window. Use for bestsellers and what sold most questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "integer",
+            description: "Max rows (1-20, default 10)",
+          },
+          days: {
+            type: "integer",
+            description: "Lookback days (1-365, default 30)",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_returns_summary",
+      description:
+        "Return and refund summary: counts by return status, total refunded amount, and recent return requests. Use for returns, refunds, and RMA questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "integer",
+            description: "Max recent returns to list (1-20, default 10)",
+          },
+          days: {
+            type: "integer",
+            description: "Lookback days (1-365, default 30)",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 const getToolDefinitions = (toolNames = null) => {

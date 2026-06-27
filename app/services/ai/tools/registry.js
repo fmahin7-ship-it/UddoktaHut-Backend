@@ -5,6 +5,10 @@ import { getProductStats } from "./getProductStats.js";
 import { listProducts } from "./listProducts.js";
 import { getLowStockProducts } from "./getLowStockProducts.js";
 import { getCategoriesBreakdown } from "./getCategoriesBreakdown.js";
+import { getOrderSummary } from "./getOrderSummary.js";
+import { getRecentOrders } from "./getRecentOrders.js";
+import { getTopSellingProducts } from "./getTopSellingProducts.js";
+import { getReturnsSummary } from "./getReturnsSummary.js";
 
 const HANDLERS = {
   get_store_summary: getStoreSummary,
@@ -12,6 +16,10 @@ const HANDLERS = {
   list_products: listProducts,
   get_low_stock_products: getLowStockProducts,
   get_categories_breakdown: getCategoriesBreakdown,
+  get_order_summary: getOrderSummary,
+  get_recent_orders: getRecentOrders,
+  get_top_selling_products: getTopSellingProducts,
+  get_returns_summary: getReturnsSummary,
 };
 
 const parseToolArgs = (rawArgs) => {

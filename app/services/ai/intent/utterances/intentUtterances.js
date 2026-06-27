@@ -137,6 +137,139 @@ const INTENT_UTTERANCES = [
     example_question: "Which category has the most products?",
     locale: "en",
   },
+
+  // get_order_summary
+  {
+    tool_name: "get_order_summary",
+    example_question: "How much did I sell this week?",
+    locale: "en",
+  },
+  {
+    tool_name: "get_order_summary",
+    example_question: "Total revenue this month",
+    locale: "en",
+  },
+  {
+    tool_name: "get_order_summary",
+    example_question: "How many orders today?",
+    locale: "en",
+  },
+  {
+    tool_name: "get_order_summary",
+    example_question: "Sales summary for my store",
+    locale: "en",
+  },
+  {
+    tool_name: "get_order_summary",
+    example_question: "এই মাসে কত বিক্রি হয়েছে?",
+    locale: "bn",
+  },
+  {
+    tool_name: "get_order_summary",
+    example_question: "আজ কয়টা অর্ডার এসেছে?",
+    locale: "bn",
+  },
+  {
+    tool_name: "get_order_summary",
+    example_question: "গত ৭ দিনের বিক্রি",
+    locale: "bn",
+  },
+
+  // get_recent_orders
+  {
+    tool_name: "get_recent_orders",
+    example_question: "Show my latest orders",
+    locale: "en",
+  },
+  {
+    tool_name: "get_recent_orders",
+    example_question: "Recent customer orders",
+    locale: "en",
+  },
+  {
+    tool_name: "get_recent_orders",
+    example_question: "Any new orders?",
+    locale: "en",
+  },
+  {
+    tool_name: "get_recent_orders",
+    example_question: "Pending orders list",
+    locale: "en",
+  },
+  {
+    tool_name: "get_recent_orders",
+    example_question: "সাম্প্রতিক অর্ডার দেখাও",
+    locale: "bn",
+  },
+  {
+    tool_name: "get_recent_orders",
+    example_question: "নতুন অর্ডার আছে?",
+    locale: "bn",
+  },
+
+  // get_top_selling_products
+  {
+    tool_name: "get_top_selling_products",
+    example_question: "Best selling products",
+    locale: "en",
+  },
+  {
+    tool_name: "get_top_selling_products",
+    example_question: "What are my top products by sales?",
+    locale: "en",
+  },
+  {
+    tool_name: "get_top_selling_products",
+    example_question: "Which items sold the most this month?",
+    locale: "en",
+  },
+  {
+    tool_name: "get_top_selling_products",
+    example_question: "সবচেয়ে বেশি বিক্রি হওয়া পণ্য",
+    locale: "bn",
+  },
+  {
+    tool_name: "get_top_selling_products",
+    example_question: "কোন পণ্য সবচেয়ে বেশি বিক্রি হয়েছে?",
+    locale: "bn",
+  },
+
+  // get_returns_summary
+  {
+    tool_name: "get_returns_summary",
+    example_question: "How many returns do I have?",
+    locale: "en",
+  },
+  {
+    tool_name: "get_returns_summary",
+    example_question: "Return and refund summary",
+    locale: "en",
+  },
+  {
+    tool_name: "get_returns_summary",
+    example_question: "Pending return requests",
+    locale: "en",
+  },
+  {
+    tool_name: "get_returns_summary",
+    example_question: "Total refunded amount",
+    locale: "en",
+  },
+  {
+    tool_name: "get_returns_summary",
+    example_question: "রিটার্ন কতগুলো হয়েছে?",
+    locale: "bn",
+  },
+  {
+    tool_name: "get_returns_summary",
+    example_question: "রিফান্ডের হিসাব দেখাও",
+    locale: "bn",
+  },
+  {
+    tool_name: "get_returns_summary",
+    example_question: "কোন অর্ডার রিটার্ন চাচ্ছে?",
+    locale: "bn",
+  },
 ];
 
 export { INTENT_UTTERANCES };
