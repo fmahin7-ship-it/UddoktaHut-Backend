@@ -11,6 +11,7 @@ import Order from "./Order.js";
 import OrderItem from "./OrderItem.js";
 import OrderReturn from "./OrderReturn.js";
 import OrderReturnItem from "./OrderReturnItem.js";
+import AiUsageMonthly from "./AiUsageMonthly.js";
 
 // USER_ROLE (MANY TO MANY)
 User.belongsToMany(Role, {
@@ -61,6 +62,9 @@ Subscription.belongsTo(Store, {
   foreignKey: "store_id",
   onDelete: "CASCADE",
 });
+
+Store.hasMany(AiUsageMonthly, { foreignKey: "store_id", onDelete: "CASCADE" });
+AiUsageMonthly.belongsTo(Store, { foreignKey: "store_id", onDelete: "CASCADE" });
 
 Store.hasMany(Order, { foreignKey: "store_id", onDelete: "CASCADE" });
 Order.belongsTo(Store, { foreignKey: "store_id", onDelete: "CASCADE" });
@@ -127,4 +131,5 @@ export {
   OrderItem,
   OrderReturn,
   OrderReturnItem,
+  AiUsageMonthly,
 };

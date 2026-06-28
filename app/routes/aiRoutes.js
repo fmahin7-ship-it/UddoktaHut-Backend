@@ -5,6 +5,7 @@ import {
   queryAIStream,
 } from "../controllers/aiController.js";
 import { aiQueryAuth } from "../middleware/aiAccessMiddleware.js";
+import { requireAiEntitlement } from "../middleware/entitlementMiddleware.js";
 import { aiRateLimit } from "../middleware/aiRateLimitMiddleware.js";
 import { validate } from "../middleware/validateMiddleware.js";
 import { setAIStreamingHeaders } from "../middleware/streamingMiddleware.js";
@@ -18,9 +19,10 @@ aiRoutes.get("/tracing-debug", getTracingDebug);
 aiRoutes.post(
   "/query",
   aiQueryAuth,
+  validate(aiQuerySchema),
+  requireAiEntitlement,
   aiRateLimit,
   setAIStreamingHeaders,
-  validate(aiQuerySchema),
   queryAIStream
 );
 

@@ -9,12 +9,19 @@ import {
   isLangfuseEnabled,
 } from "../services/ai/observability/langfuseClient.js";
 import { resolveAIStoreContext } from "../utils/resolveAIStoreContext.js";
+import {
+  estimateTokens,
+  recordAiTokenUsage,
+} from "../services/subscription/aiUsageService.js";
 
 const queryAIStream = async (req, res, next) => {
   try {
     const { question, useRAG } = req.body;
     const storeName = resolveAIStoreContext(req);
+    const storeId = req.ownerStoreContext?.store?.id;
     const servicesStatus = await checkAIServices();
+
+    let answerText = "";
 
     await runWithAITrace(
       {
@@ -22,7 +29,7 @@ const queryAIStream = async (req, res, next) => {
         storeName,
         userId: req.user?.id,
         provider: servicesStatus.provider,
-        useRAG: false, // FUTURE Phase 2: vector routing flag
+        useRAG: false,
       },
       async () => {
         const result = await processAIQueryStream(question, storeName, {
@@ -30,15 +37,23 @@ const queryAIStream = async (req, res, next) => {
         });
 
         if (!result.stream) {
-          res.write(result.data?.answer ?? result.metadata?.message ?? "");
+          answerText = result.data?.answer ?? result.metadata?.message ?? "";
+          res.write(answerText);
           res.end();
           return result;
         }
 
-        const answerPreview = await pipeStreamToResponse(result.stream, res);
-        return { ...result, answerPreview };
+        answerText = await pipeStreamToResponse(result.stream, res);
+        return { ...result, answerPreview: answerText };
       }
     );
+
+    if (storeId) {
+      const tokens =
+        req.recordAiUsage?.(answerText) ??
+        estimateTokens(`${question}${answerText}`);
+      await recordAiTokenUsage(storeId, tokens);
+    }
   } catch (err) {
     next(err);
   }

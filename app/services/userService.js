@@ -12,6 +12,7 @@ import {
 } from "../models/RootModel.js";
 import { env } from "../config/env.js";
 import { User, Store } from "../models/RootModel.js";
+import { getTrialPlanId } from "./subscription/planCatalog.js";
 import nodemailer from "nodemailer";
 import { generateTokens } from "./commonService.js";
 import { slugifyStoreName, buildStoreUrl } from "../utils/storeUrl.js";
@@ -59,10 +60,10 @@ const sendEmailVarification = async (data) => {
   const tokenData = await tokenResp.json();
   const accessToken = tokenData.access_token;
 
-  // 2️⃣ Get Zoho account ID
+  // 2️ Get Zoho account ID
   const accountId = env.ZOHO_ACCOUNT_ID;
 
-  // 3️⃣ Prepare email content
+  // 3️ Prepare email content
   const subject = "Please verify your email";
   const content = `
       <main style="display: flex; flex-direction: column; margin: 0 auto">
@@ -71,7 +72,7 @@ const sendEmailVarification = async (data) => {
       </main>
     `;
 
-  // 4️⃣ Send email
+  // 4️ Send email
   const sendResp = await fetch(
     `https://mail.zoho.com/api/accounts/${accountId}/messages`,
     {
@@ -224,6 +225,8 @@ async function createStoreAndSubscription(userId, storeData, transaction) {
   const trialEnds = new Date(now);
   trialEnds.setDate(now.getDate() + 7);
 
+  const trialPlanId = await getTrialPlanId();
+
   await Subscription.create(
     {
       store_id: store.id,
@@ -232,7 +235,7 @@ async function createStoreAndSubscription(userId, storeData, transaction) {
       trial_ends_at: trialEnds,
       end_date: trialEnds,
       is_auto_renew: false,
-      plan_id: null,
+      plan_id: trialPlanId,
     },
     { transaction }
   );

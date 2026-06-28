@@ -8,6 +8,7 @@ import {
 import { authenticateUser } from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validateMiddleware.js";
 import { checkOwnerSubscription } from "../middleware/subscriptionMiddleware.js";
+import { requireProductCreateSlot } from "../middleware/entitlementMiddleware.js";
 import { paginationQuerySchema } from "../validations/paginationSchema.js";
 import {
   productCreateSchema,
@@ -28,7 +29,7 @@ router.get(
 router.post(
   "/",
   authenticateUser,
-  checkOwnerSubscription,
+  requireProductCreateSlot,
   validate(productCreateSchema, "body"),
   addProduct
 );
