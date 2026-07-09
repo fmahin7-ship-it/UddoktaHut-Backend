@@ -1,0 +1,79 @@
+{
+  "cases": [
+    {
+      "id": "store-summary-en",
+      "question": "Give me a summary of my store",
+      "expect": { "tools": ["get_store_summary"] }
+    },
+    {
+      "id": "product-count-en",
+      "question": "How many products do I have?",
+      "expect": { "tools": ["get_product_stats"] }
+    },
+    {
+      "id": "list-products-en",
+      "question": "List my products",
+      "expect": { "tools": ["list_products"] }
+    },
+    {
+      "id": "low-stock-en",
+      "question": "Which products are low on stock?",
+      "expect": { "tools": ["get_low_stock_products"] }
+    },
+    {
+      "id": "categories-en",
+      "question": "Show me category breakdown",
+      "expect": { "tools": ["get_categories_breakdown"] }
+    },
+    {
+      "id": "order-summary-en",
+      "question": "What is my order summary?",
+      "expect": { "tools": ["get_order_summary"] }
+    },
+    {
+      "id": "recent-orders-en",
+      "question": "Show recent orders",
+      "expect": { "tools": ["get_recent_orders"] }
+    },
+    {
+      "id": "top-sellers-en",
+      "question": "What are my top selling products?",
+      "expect": { "tools": ["get_top_selling_products"] }
+    },
+    {
+      "id": "returns-en",
+      "question": "How many returns do I have?",
+      "expect": { "tools": ["get_returns_summary"] }
+    },
+    {
+      "id": "low-stock-bn",
+      "question": "কোন প্রোডাক্টের স্টক কম?",
+      "expect": { "tools": ["get_low_stock_products"] }
+    },
+    {
+      "id": "product-stats-bn",
+      "question": "আমার কতগুলো প্রোডাক্ট আছে?",
+      "expect": { "tools": ["get_product_stats"] }
+    },
+    {
+      "id": "strategy-pricing",
+      "question": "How should I price my products to grow sales?",
+      "expect": { "minTools": 2 }
+    },
+    {
+      "id": "greeting-en",
+      "question": "Hello",
+      "expect": { "noTools": true }
+    },
+    {
+      "id": "weather-off-topic",
+      "question": "What's the weather in Melbourne?",
+      "expect": { "refuse": true }
+    },
+    {
+      "id": "joke-off-topic",
+      "question": "Tell me a joke",
+      "expect": { "refuse": true }
+    }
+  ]
+}

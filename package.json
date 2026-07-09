@@ -19,7 +19,8 @@
     "migrate": "npx sequelize-cli db:migrate",
     "seed-intent-utterances": "node scripts/seed-intent-utterances.js",
     "seed-tool-routing": "node scripts/seed-intent-utterances.js",
-    "set-store-plan": "node scripts/set-store-plan.js"
+    "set-store-plan": "node scripts/set-store-plan.js",
+    "ai:eval": "node scripts/run-ai-evals.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

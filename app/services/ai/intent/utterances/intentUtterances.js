@@ -58,6 +58,16 @@ const INTENT_UTTERANCES = [
   },
   {
     tool_name: "get_product_stats",
+    example_question: "আমার কতগুলো প্রোডাক্ট আছে?",
+    locale: "bn",
+  },
+  {
+    tool_name: "get_product_stats",
+    example_question: "আমার কতগুলো পণ্য আছে?",
+    locale: "bn",
+  },
+  {
+    tool_name: "get_product_stats",
     example_question: "Average price and stock summary",
     locale: "en",
   },
