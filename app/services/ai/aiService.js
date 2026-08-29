@@ -16,7 +16,7 @@ const shouldUseCopilot = () =>
   env.AI_USE_TOOLS !== false && supportsToolCalling();
 
 
-const processAIQueryStream = async (question, storeName) => {
+const processAIQueryStream = async (question, storeName, { history = [] } = {}) => {
   try {
     if (
       !question ||
@@ -48,7 +48,7 @@ const processAIQueryStream = async (question, storeName) => {
     }
 
     try {
-      return await processCopilotStream(question, storeName);
+      return await processCopilotStream(question, storeName, { history });
     } catch (error) {
       if (error.statusCode) throw error;
       console.warn("[AI] Copilot failed:", error.message);

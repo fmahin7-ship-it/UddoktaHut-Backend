@@ -13,6 +13,7 @@ import {
 } from "../rag/queryResponse.js";
 import { updateActiveTrace, withSpan } from "../observability/aiTrace.js";
 import { readStreamAnswer } from "../evals/readStreamAnswer.js";
+import { buildIntentQuery } from "../chat/chatHistory.js";
 
 const MAX_TOOL_ROUNDS = 3;
 
@@ -81,9 +82,13 @@ const buildEvalResult = async ({
 
 /**
  * Shared copilot pipeline for HTTP streaming and offline evals.
- * @param {{ collectAnswer?: boolean }} options
+ * @param {{ collectAnswer?: boolean, history?: Array<{ role: string, content: string }> }} options
  */
-const runCopilot = async (question, storeName, { collectAnswer = false } = {}) => {
+const runCopilot = async (
+  question,
+  storeName,
+  { collectAnswer = false, history = [] } = {}
+) => {
   const validation = await withSpan(
     "validate-context",
     { question },
@@ -112,12 +117,14 @@ const runCopilot = async (question, storeName, { collectAnswer = false } = {}) =
     });
   }
 
-  const intentMatches = await resolveIntent(question);
+  const intentQuery = buildIntentQuery(question, history);
+  const intentMatches = await resolveIntent(intentQuery);
   const intentPolicy = applyIntentPolicy(intentMatches);
   const toolsToExpose = intentPolicy.toolsToExpose;
 
   updateActiveTrace({
     metadata: {
+      intentQuery: history.length > 0 ? intentQuery : undefined,
       intentTier: intentPolicy.tier,
       intentToolFilter: intentPolicy.toolNames,
       intentConfidence: intentPolicy.topConfidence,
@@ -132,6 +139,7 @@ const runCopilot = async (question, storeName, { collectAnswer = false } = {}) =
   let messages = buildCopilotMessages(question, storeName, {
     intentMatches,
     tier: intentPolicy.tier,
+    history,
   });
   const toolsUsed = [];
   const toolResults = {};

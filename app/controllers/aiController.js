@@ -13,10 +13,12 @@ import {
   estimateTokens,
   recordAiTokenUsage,
 } from "../services/subscription/aiUsageService.js";
+import { normalizeChatHistory } from "../services/ai/chat/chatHistory.js";
 
 const queryAIStream = async (req, res, next) => {
   try {
-    const { question, useRAG } = req.body;
+    const { question, useRAG, history: rawHistory } = req.body;
+    const history = normalizeChatHistory(rawHistory);
     const storeName = resolveAIStoreContext(req);
     const storeId = req.ownerStoreContext?.store?.id;
     const servicesStatus = await checkAIServices();
@@ -34,6 +36,7 @@ const queryAIStream = async (req, res, next) => {
       async () => {
         const result = await processAIQueryStream(question, storeName, {
           useRAG,
+          history,
         });
 
         if (!result.stream) {
@@ -51,7 +54,9 @@ const queryAIStream = async (req, res, next) => {
     if (storeId) {
       const tokens =
         req.recordAiUsage?.(answerText) ??
-        estimateTokens(`${question}${answerText}`);
+        estimateTokens(
+          `${question}${answerText}${history.map((t) => t.content).join("")}`
+        );
       await recordAiTokenUsage(storeId, tokens);
     }
   } catch (err) {

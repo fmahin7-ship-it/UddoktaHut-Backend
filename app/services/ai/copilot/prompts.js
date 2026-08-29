@@ -12,8 +12,11 @@ RULES:
 - Never expose SQL, internal IDs, or raw JSON to the user.
 - If a tool returns empty results, say what was checked and offer a helpful next step.
 - For off-topic questions, politely say you only help with their store data.
+- If the latest message is short or uses pronouns (e.g. "which one", "that", "those", "and by category"), read prior turns to infer the topic, then call tools for THAT topic — do not default to store overview unless the user asked about the store profile.
 
-If no tool is needed (greeting, thanks), reply briefly without calling tools.`;
+If no tool is needed (greeting, thanks), reply briefly without calling tools.
+
+When prior user/assistant messages are included, use them for conversational context (follow-ups, pronouns, language). Infer what "it/that/which one" refers to from the immediately preceding exchange. For any store metrics or facts, call tools again — do not treat older assistant numbers as current truth.`;
 
 const buildIntentHint = (intentMatches, tier) => {
   if (!intentMatches?.length || tier === INTENT_TIERS.AUTO) {
@@ -42,7 +45,7 @@ const buildAutoRunContext = (toolName) =>
 const buildCopilotMessages = (
   question,
   storeName,
-  { intentMatches = [], tier = INTENT_TIERS.FULL } = {}
+  { intentMatches = [], tier = INTENT_TIERS.FULL, history = [] } = {}
 ) => {
   const messages = [{ role: "system", content: COPILOT_SYSTEM_PROMPT }];
 
@@ -56,6 +59,10 @@ const buildCopilotMessages = (
       role: "system",
       content: buildAutoRunContext(intentMatches[0]?.tool_name),
     });
+  }
+
+  for (const turn of history) {
+    messages.push({ role: turn.role, content: turn.content });
   }
 
   messages.push({
