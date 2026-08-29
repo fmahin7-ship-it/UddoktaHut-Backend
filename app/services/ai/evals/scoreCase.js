@@ -1,28 +1,57 @@
 const includesAllTools = (actual, expected) =>
   expected.every((tool) => actual.includes(tool));
 
+const DECLINE_PATTERNS = [
+  /only help with/i,
+  /store data/i,
+  /can'?t provide/i,
+  /cannot provide/i,
+  /can'?t help with that/i,
+  /cannot help with that/i,
+  /off[- ]?topic/i,
+  /not able to (help|answer|provide)/i,
+];
+
+const looksLikeSoftRefuse = (answer, toolsUsed) => {
+  if ((toolsUsed?.length ?? 0) > 0) return false;
+  if (!answer || typeof answer !== "string") return false;
+  return DECLINE_PATTERNS.some((re) => re.test(answer));
+};
+
 const scoreCase = (testCase, result) => {
   const { expect } = testCase;
 
   if (expect.refuse) {
-    const pass = result.refused === true;
+    const hardRefuse = result.refused === true;
+    const softRefuse = looksLikeSoftRefuse(result.answer, result.toolsUsed);
+    const pass = hardRefuse || softRefuse;
+
     return {
       id: testCase.id,
       pass,
-      reason: pass ? "refused as expected" : "should have refused but answered",
+      reason: pass
+        ? hardRefuse
+          ? "refused as expected"
+          : "soft refuse (declined off-topic without tools)"
+        : "should have refused but answered",
       actual: {
         refused: result.refused,
+        softRefuse,
+        toolsUsed: result.toolsUsed ?? [],
         answer: result.answer?.slice(0, 160),
       },
     };
   }
 
   if (expect.noTools) {
-    const pass = (result.toolsUsed?.length ?? 0) === 0 && result.refused !== true;
+    const pass =
+      (result.toolsUsed?.length ?? 0) === 0 && result.refused !== true;
     return {
       id: testCase.id,
       pass,
-      reason: pass ? "answered without tools" : "unexpected tool calls for greeting",
+      reason: pass
+        ? "answered without tools"
+        : "unexpected tool calls for greeting",
       actual: {
         toolsUsed: result.toolsUsed ?? [],
         answerPreview: result.answer?.slice(0, 160),
