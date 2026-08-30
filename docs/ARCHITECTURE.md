@@ -29,7 +29,7 @@ graph TB
 
     API --> Public[Public Store APIs]
     API --> Protected[Protected Owner APIs]
-    API --> AI[/ai Analytics Copilot]
+    API --> AiCopilot["Analytics Copilot"]
 
     subgraph "External Services"
         Email[Email Service]
@@ -38,8 +38,8 @@ graph TB
     end
 
     Services --> Email
-    AI --> OpenAI
-    AI --> Langfuse
+    AiCopilot --> OpenAI
+    AiCopilot --> Langfuse
 ```
 
 ## 🏢 Multi-Tenant Architecture
