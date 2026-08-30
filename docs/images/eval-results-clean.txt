@@ -1,0 +1,24 @@
+AI Eval — store: "stop-and-shop"
+Provider: openai
+Cases: 15
+
+  store-summary-en .............. PASS
+  product-count-en .............. PASS
+  list-products-en .............. PASS
+  low-stock-en .................. PASS
+  categories-en ................. PASS
+  order-summary-en .............. PASS
+  recent-orders-en .............. PASS
+  top-sellers-en ................ PASS
+  returns-en .................... PASS
+  low-stock-bn .................. PASS
+  product-stats-bn .............. PASS
+  strategy-pricing .............. PASS
+  greeting-en ................... PASS
+  weather-off-topic ............. PASS
+  joke-off-topic ................ PASS
+
+Score: 15/15 (100%)
+Minimum pass rate: 85%
+
+# Reproduce: npm run db:up && npm run ai:eval

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>UddoktaHut Analytics AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #f4f4f5;
+      padding: 32px;
+      color: #18181b;
+    }
+    .page-title {
+      font-size: 13px;
+      color: #71717a;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    .card {
+      max-width: 880px;
+      height: 560px;
+      background: #fff;
+      border: 1px solid #e4e4e7;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,.06);
+    }
+    .header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e4e4e7;
+      background: linear-gradient(90deg, #f0fdf4, #ecfdf5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h2 {
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bot-icon {
+      width: 24px; height: 24px;
+      background: #16a34a;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+    .online {
+      font-size: 13px;
+      color: #71717a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+    }
+    .messages {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: #fafafa;
+    }
+    .msg {
+      max-width: 78%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .user {
+      align-self: flex-end;
+      background: #16a34a;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .ai {
+      align-self: flex-start;
+      background: white;
+      border: 1px solid #e4e4e7;
+      border-bottom-left-radius: 4px;
+    }
+    .time {
+      font-size: 11px;
+      color: #a1a1aa;
+      margin-top: 6px;
+    }
+    .input-area {
+      padding: 16px 24px;
+      border-top: 1px solid #e4e4e7;
+      background: white;
+      display: flex;
+      gap: 12px;
+    }
+    .input {
+      flex: 1;
+      border: 1px solid #d4d4d8;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #a1a1aa;
+    }
+    .send {
+      background: #16a34a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0 20px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-title">uddoktahut.com/dashboard/analytics</div>
+  <div class="card">
+    <div class="header">
+      <h2><span class="bot-icon">🤖</span> AI Business Analyst</h2>
+      <div class="online"><span class="dot"></span> Online</div>
+    </div>
+    <div class="messages">
+      <div class="msg user">
+        How many products do I have?
+        <div class="time">2:14 PM</div>
+      </div>
+      <div class="msg ai">
+        You have <strong>52 products</strong> in your store (48 active, 4 inactive). Total inventory value is approximately ৳1,24,500 across all categories.
+        <div class="time">2:14 PM</div>
+      </div>
+      <div class="msg user">
+        And by category?
+        <div class="time">2:15 PM</div>
+      </div>
+      <div class="msg ai">
+        Here's your category breakdown: <strong>Electronics</strong> 18 products, <strong>Clothing</strong> 14, <strong>Home</strong> 12, <strong>Accessories</strong> 8. Electronics has the highest stock value.
+        <div class="time">2:15 PM</div>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input">Ask about products, orders, or sales...</div>
+      <button class="send">Send</button>
+    </div>
+  </div>
+</body>
+</html>

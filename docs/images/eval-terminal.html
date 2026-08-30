@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Eval Results</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1e1e1e;
+      padding: 24px;
+      font-family: "Cascadia Code", "Consolas", "Monaco", monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #d4d4d4;
+    }
+    .window {
+      max-width: 720px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,.45);
+      border: 1px solid #333;
+    }
+    .titlebar {
+      background: #2d2d2d;
+      padding: 10px 14px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid #333;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .red { background: #ff5f57; }
+    .yellow { background: #febc2e; }
+    .green { background: #28c840; }
+    .title { margin-left: 8px; color: #aaa; font-size: 12px; }
+    pre {
+      padding: 20px;
+      white-space: pre-wrap;
+      background: #1e1e1e;
+    }
+    .cmd { color: #9cdcfe; }
+    .pass { color: #4ec9b0; }
+    .score { color: #dcdcaa; font-weight: bold; margin-top: 8px; }
+    .dim { color: #808080; }
+  </style>
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
+      <span class="title">PowerShell — UddoktaHut-Backend</span>
+    </div>
+    <pre><span class="cmd">npm run ai:eval</span>
+
+AI Eval — store: "stop-and-shop"
+Provider: openai
+Cases: 15
+
+  store-summary-en .............. <span class="pass">PASS</span>
+  product-count-en .............. <span class="pass">PASS</span>
+  list-products-en .............. <span class="pass">PASS</span>
+  low-stock-en .................. <span class="pass">PASS</span>
+  categories-en ................. <span class="pass">PASS</span>
+  order-summary-en .............. <span class="pass">PASS</span>
+  recent-orders-en .............. <span class="pass">PASS</span>
+  top-sellers-en ................ <span class="pass">PASS</span>
+  returns-en .................... <span class="pass">PASS</span>
+  low-stock-bn .................. <span class="pass">PASS</span>
+  product-stats-bn .............. <span class="pass">PASS</span>
+  strategy-pricing .............. <span class="pass">PASS</span>
+  greeting-en ................... <span class="pass">PASS</span>
+  weather-off-topic ............. <span class="pass">PASS</span>
+  joke-off-topic ................ <span class="pass">PASS</span>
+
+<span class="score">Score: 15/15 (100%)</span>
+Minimum pass rate: 85%
+
+<span class="dim">Golden set: app/services/ai/evals/golden/routing.json</span></pre>
+  </div>
+</body>
+</html>
