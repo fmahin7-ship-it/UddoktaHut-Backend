@@ -2,7 +2,7 @@
 
 Multi-tenant commerce SaaS API (Node.js, Express, PostgreSQL). Store owners get a **tool-calling analytics copilot** on Pro/Business plans — not free-form Text-to-SQL.
 
-**Live app:** [uddoktahut.com](https://uddoktahut.com) · **Frontend:** [UddoktaHut](https://github.com/FarhanMasud07/UddoktaHut)
+**Live app:** [uddoktahut.com](https://uddoktahut.com) · **Frontend:** [UddoktaHut](https://github.com/fmahin7-ship-it/UddoktaHut)
 
 <p align="center">
   <img src="docs/images/chat-demo.png" alt="Analytics AI chat with follow-up questions" width="49%" />
