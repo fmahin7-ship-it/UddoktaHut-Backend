@@ -1,6 +1,24 @@
 # UddoktaHut Backend
 
-A robust multi-tenant SaaS e-commerce backend built with Node.js, Express, and Sequelize. This system provides subscription-based store management with customizable templates and comprehensive product management system.
+Multi-tenant commerce SaaS API (Node.js, Express, PostgreSQL). Store owners get a **tool-calling analytics copilot** on Pro/Business plans — not free-form Text-to-SQL.
+
+**Live app:** [uddoktahut.com](https://uddoktahut.com) · **Frontend:** [UddoktaHut](https://github.com/FarhanMasud07/UddoktaHut)
+
+<p align="center">
+  <img src="docs/images/chat-demo.png" alt="Analytics AI chat with follow-up questions" width="49%" />
+  <img src="docs/images/eval-results.png" alt="AI routing eval harness — 15/15 passing" width="49%" />
+</p>
+
+<p align="center"><em>Left: streaming analytics chat (history + follow-ups). Right: golden routing evals (<code>npm run ai:eval</code>).</em></p>
+
+### Analytics AI (high level)
+
+- **9 fixed tools** — tenant-scoped SQL handlers; `storeName` injected server-side
+- **pgvector intent routing** — seeded utterances in `tool_routing`
+- **Plan gating** — product caps + monthly AI token budget ([ENTITLEMENTS.md](docs/ENTITLEMENTS.md))
+- **Eval harness** — 15-case golden set; routing/tools regression in CI or locally
+
+Details: [AI_COPILOT.md](docs/AI_COPILOT.md)
 
 ## 🚀 Features
 
