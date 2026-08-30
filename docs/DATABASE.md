@@ -1,8 +1,6 @@
 # Database Schema Documentation
 
-This document provides comprehensive documentation of the UddoktaHut Backend database schema, including models, relationships, indexes, and data flow patterns.
-
-## 🗄️ Database Overview
+This document covers the UddoktaHut Backend database schema. For plan limits and AI usage rules see [ENTITLEMENTS.md](./ENTITLEMENTS.md); for copilot tables in context see [AI_COPILOT.md](./AI_COPILOT.md).
 
 **Database Type:** PostgreSQL  
 **ORM:** Sequelize  
@@ -74,11 +72,29 @@ erDiagram
 
     Plan {
         int id PK "Primary Key"
+        string slug UK "trial/basic/pro/business"
         string name "Plan Name"
-        decimal price "Monthly Price"
-        int duration_months "Billing Cycle"
-        text features "Plan Features JSON"
-        timestamp created_at "Creation Time"
+        string billing_cycle "trial/monthly"
+        int price "Price in BDT"
+        int max_products "Product cap"
+        boolean includes_ai "Analytics AI"
+        int ai_token_limit_monthly "Monthly token budget"
+    }
+
+    AiUsageMonthly {
+        int id PK
+        int store_id FK
+        string period "YYYY-MM"
+        int tokens_used
+        timestamp updated_at
+    }
+
+    ToolRouting {
+        int id PK
+        text example_question
+        string tool_name
+        string locale
+        vector embedding "1536-dim"
     }
 
     User ||--o{ UserRole : "has roles"
@@ -86,6 +102,7 @@ erDiagram
     User ||--|| Store : "owns store"
     Store ||--o{ Product : "contains products"
     Store ||--|| Subscription : "has subscription"
+    Store ||--o{ AiUsageMonthly : "AI usage by month"
     Plan ||--o{ Subscription : "defines subscription"
 ```
 
@@ -238,21 +255,55 @@ erDiagram
 ### Plan Model
 
 **Table:** `plans`  
-**Purpose:** Subscription plan definitions
+**Purpose:** Subscription plan definitions and entitlements
 
-| Column          | Type          | Constraints                 | Description                |
-| --------------- | ------------- | --------------------------- | -------------------------- |
-| id              | INTEGER       | PRIMARY KEY, AUTO_INCREMENT | Unique plan identifier     |
-| name            | VARCHAR(100)  | NOT NULL                    | Plan display name          |
-| price           | DECIMAL(10,2) | NOT NULL                    | Monthly subscription price |
-| duration_months | INTEGER       | DEFAULT 1                   | Billing cycle length       |
-| features        | TEXT          | NULLABLE                    | Plan features as JSON      |
-| created_at      | TIMESTAMP     | NOT NULL                    | Plan creation time         |
+| Column                   | Type         | Constraints      | Description                          |
+| ------------------------ | ------------ | ---------------- | ------------------------------------ |
+| id                       | INTEGER      | PRIMARY KEY      | Plan identifier                      |
+| slug                     | VARCHAR(50)  | NOT NULL, UNIQUE | `trial`, `basic`, `pro`, `business`  |
+| name                     | VARCHAR      | NOT NULL         | Display name                         |
+| billing_cycle            | VARCHAR      | NOT NULL         | `trial` or `monthly`                 |
+| price                    | INTEGER      | NOT NULL         | Price in BDT                         |
+| max_products             | INTEGER      | NOT NULL         | Max products per store               |
+| includes_ai              | BOOLEAN      | NOT NULL         | Analytics copilot enabled            |
+| ai_token_limit_monthly   | INTEGER      | NOT NULL         | Monthly AI token budget (0 = none)   |
 
-**Indexes:**
+Seeded values match [ENTITLEMENTS.md](./ENTITLEMENTS.md). Migration: `20250621140000-plan-entitlements-and-ai-usage.cjs`.
 
-- PRIMARY KEY on `id`
-- INDEX on `price`
+### AiUsageMonthly Model
+
+**Table:** `ai_usage_monthly`  
+**Purpose:** Rolling monthly AI token consumption per store
+
+| Column       | Type        | Constraints                    | Description              |
+| ------------ | ----------- | ------------------------------ | ------------------------ |
+| id           | INTEGER     | PRIMARY KEY                    | Row id                   |
+| store_id     | INTEGER     | FK → stores.id, CASCADE        | Tenant                   |
+| period       | VARCHAR(7)  | NOT NULL                       | `YYYY-MM`                |
+| tokens_used  | INTEGER     | NOT NULL, default 0            | Cumulative this period   |
+| updated_at   | TIMESTAMP   | NOT NULL                       | Last increment time      |
+
+**Indexes:** unique on `(store_id, period)`.
+
+### ToolRouting (pgvector)
+
+**Table:** `tool_routing`  
+**Purpose:** Example questions + embeddings for intent → tool routing (not a Sequelize model; raw SQL in `intentVectorStore.js`)
+
+| Column            | Type           | Description                    |
+| ----------------- | -------------- | ------------------------------ |
+| id                | SERIAL         | Primary key                    |
+| example_question  | TEXT           | Seed utterance                 |
+| tool_name         | VARCHAR(64)    | Target analytics tool          |
+| locale            | VARCHAR(8)     | `en`, `bn`, or `any`           |
+| embedding         | vector(1536)   | OpenAI embedding               |
+| created_at        | TIMESTAMPTZ    | Insert time                    |
+
+Requires PostgreSQL `vector` extension. HNSW index on `embedding`. Migration: `20250609120000-enable-pgvector-tool-routing.cjs`. Populate: `npm run seed-intent-utterances`.
+
+### Plan Model (legacy note)
+
+Older docs referenced `duration_months` and `features` JSON on plans. Current schema uses `slug`, `billing_cycle`, and entitlement columns above.
 
 ## 🔗 Relationships and Constraints
 
@@ -347,7 +398,17 @@ migrations/
 ├── 20241001000005-create-subscriptions.cjs
 ├── 20241001000006-create-products.cjs
 ├── 20241007000000-add-product-search-indexes.cjs
-└── 20251013000000-add-template-name-to-stores.cjs
+├── 20251013000000-add-template-name-to-stores.cjs
+├── 20250609120000-enable-pgvector-tool-routing.cjs
+└── 20250621140000-plan-entitlements-and-ai-usage.cjs
+```
+
+After migrations on a fresh DB:
+
+```bash
+npm run migrate
+npm run seed-all              # roles, plans, etc.
+npm run seed-intent-utterances  # tool_routing embeddings (needs OPENAI_API_KEY)
 ```
 
 ### Migration Best Practices

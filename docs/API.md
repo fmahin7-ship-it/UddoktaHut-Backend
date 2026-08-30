@@ -11,6 +11,7 @@ This document provides comprehensive documentation for all UddoktaHut Backend AP
 - [Product Management APIs](#product-management-apis)
 - [Store Management APIs](#store-management-apis)
 - [Subscription APIs](#subscription-apis)
+- [Analytics AI](#analytics-ai)
 - [User Management APIs](#user-management-apis)
 - [Rate Limiting](#rate-limiting)
 - [Postman Collection](#postman-collection)
@@ -481,9 +482,40 @@ GET /store/awesome-electronics/products?page=1&pageSize=12&search=laptop
 
 **Endpoint:** `GET /subscription/status`  
 **Authentication:** Required  
-**Description:** Get current user's subscription status and store information
+**Description:** Get current user's subscription status, store information, and plan limits.
 
-#### Response (200 OK)
+#### Response (200 OK) — store owner with subscription
+
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "name": "John Doe",
+      "email": "user@example.com",
+      "phoneNumber": "+1234567890",
+      "onboarded": true,
+      "role": 2,
+      "template_name": "classic",
+      "storeName": "my-store",
+      "storeUrl": "https://example.com/my-store",
+      "isActive": true,
+      "planSlug": "pro",
+      "planName": "Pro",
+      "includesAi": true,
+      "maxProducts": 700,
+      "productCount": 52,
+      "productsRemaining": 648,
+      "aiTokenLimitMonthly": 10000,
+      "aiTokensUsed": 1200,
+      "aiTokensRemaining": 8800,
+      "subscriptionStatus": "active"
+    }
+  }
+}
+```
+
+#### Response (200 OK) — legacy shape (subset)
 
 ```json
 {
@@ -518,6 +550,51 @@ GET /store/awesome-electronics/products?page=1&pageSize=12&search=laptop
   }
 }
 ```
+
+## Analytics AI
+
+Base path: `/ai` (not under `/api`). Requires JWT and a plan with `includes_ai` (Pro or Business). See [ENTITLEMENTS.md](./ENTITLEMENTS.md).
+
+### Health check
+
+**Endpoint:** `GET /ai/health`  
+**Authentication:** None  
+
+Returns provider availability, tool list, and intent index status.
+
+### Query (streaming)
+
+**Endpoint:** `POST /ai/query`  
+**Authentication:** Required (store owner JWT)  
+**Content-Type:** `application/json`  
+**Response:** `text/plain` stream (chunks of answer text)
+
+#### Request body
+
+```json
+{
+  "question": "How many products do I have?",
+  "history": [
+    { "role": "user", "content": "Show category breakdown" },
+    { "role": "assistant", "content": "Here is your breakdown..." }
+  ]
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|--------|
+| `question` | yes | Max 500 characters |
+| `history` | no | Up to 8 prior turns (`user` / `assistant`) |
+
+#### Errors
+
+| Situation | Typical message |
+|-----------|-----------------|
+| Trial / Basic plan | AI not included on plan |
+| Monthly token cap | Token limit exceeded |
+| Rate limit | 429 from `aiRateLimit` middleware |
+
+Full behaviour: [AI_COPILOT.md](./AI_COPILOT.md).
 
 ## 👥 User Management APIs
 
@@ -672,6 +749,9 @@ UddoktaHut API/
 │   └── Update Template
 └── Subscription/
     └── Get Status
+└── AI/
+    ├── Health
+    └── Query (stream)
 ```
 
 ## 🧪 Testing Examples

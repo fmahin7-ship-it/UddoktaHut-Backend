@@ -13,6 +13,7 @@ A robust multi-tenant SaaS e-commerce backend built with Node.js, Express, and S
 - **Product Management** - Full CRUD operations with search and pagination
 - **Store Templates** - Customizable frontend themes per store
 - **Public Store APIs** - Customer-facing endpoints for store browsing
+- **Analytics AI** - Tool-based store copilot for Pro/Business plans (see [AI_COPILOT.md](docs/AI_COPILOT.md))
 
 ### Technical Features
 
@@ -30,6 +31,8 @@ A robust multi-tenant SaaS e-commerce backend built with Node.js, Express, and S
 - **[Database Documentation](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DATABASE.md)** - Complete schema, relationships, and migration strategies
 - **[API Reference](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/API.md)** - Complete API documentation with examples and authentication
 - **[Subscription System](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/SUBSCRIPTION.md)** - Trial management, middleware, and access control details
+- **[Plan entitlements](docs/ENTITLEMENTS.md)** - Product limits, AI gating, token usage
+- **[Analytics AI](docs/AI_COPILOT.md)** - Copilot flow, tools, evals, env vars
 - **[Deployment Guide](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)** - Production deployment, Docker setup, and hosting strategies
 
 ## 🏗️ Architecture
@@ -75,26 +78,33 @@ For detailed schema documentation, see [DATABASE.md](https://github.com/fmahin7-
 
 ### Authentication Endpoints
 
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `GET /api/auth/me` - Get current user info
+- `POST /auth/login` - User login
+- `POST /auth/register` - User registration (if enabled)
+- `GET /auth/me` - Get current user info
 
 ### Product Management (Protected)
 
-- `GET /api/products` - List user's products with pagination/search
-- `POST /api/products` - Create new product (requires active subscription)
-- `PATCH /api/products/:id` - Update product (requires active subscription)
-- `DELETE /api/products/:id` - Delete product (requires active subscription)
+- `GET /product` - List user's products with pagination/search
+- `POST /product` - Create new product (subscription + product cap)
+- `PATCH /product/:id` - Update product (requires active subscription)
+- `DELETE /product/:id` - Delete product (requires active subscription)
 
 ### Store Management
 
-- `GET /api/store/:storeName` - Get public store info
-- `GET /api/store/:storeName/products` - Get public store products
-- `PATCH /api/store/:storeName/template` - Update store template (protected)
+- `GET /store/:storeName` - Get public store info
+- `GET /store/:storeName/products` - Get public store products
+- `PATCH /store/:storeName/template` - Update store template (protected)
 
 ### Subscription Management
 
-- `GET /api/subscription/status` - Get user subscription status
+- `GET /subscription/status` - Get user subscription status (includes plan limits and usage)
+
+### Analytics AI
+
+- `GET /ai/health` - LLM, embedding, and intent index status
+- `POST /ai/query` - Streaming analytics chat (Pro/Business, JWT required)
+
+See [AI_COPILOT.md](docs/AI_COPILOT.md) and [ENTITLEMENTS.md](docs/ENTITLEMENTS.md).
 
 For complete API documentation, see [API.md](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/API.md)
 
@@ -135,10 +145,10 @@ cp .env.example .env
 createdb uddoktahut_development
 
 # Run migrations
-npm run db:migrate
+npm run migrate
 
 # Seed initial data
-npm run db:seed
+npm run seed-all
 ```
 
 5. **Start Development Server**
@@ -271,19 +281,16 @@ UddoktaHut-Backend/
 npm run dev
 
 # Run database migrations
-npm run db:migrate
+npm run migrate
 
-# Rollback last migration
-npm run db:migrate:undo
+# Seed all seeders
+npm run seed-all
 
-# Run seeders
-npm run db:seed
+# Seed intent utterances for AI routing (after pgvector migration)
+npm run seed-intent-utterances
 
-# Generate new migration
-npm run migration:generate -- --name migration-name
-
-# Generate new seeder
-npm run seed:generate -- --name seeder-name
+# Run AI routing evals (dev only; needs OpenAI key + store data)
+npm run ai:eval
 ```
 
 ## 🤝 Contributing
@@ -311,6 +318,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Database Schema](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DATABASE.md)
 - [API Reference](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/API.md)
 - [Subscription System](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/SUBSCRIPTION.md)
+- [Plan entitlements](docs/ENTITLEMENTS.md)
+- [Analytics AI](docs/AI_COPILOT.md)
 - [Deployment Guide](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)
 
 ## 🖥️ Complete Project Repositories
@@ -325,6 +334,7 @@ This is part of a **full-stack SaaS e-commerce solution** with separate frontend
 - **JWT Authentication** - Secure user and role management
 - **Product Management** - Full CRUD with search and pagination
 - **Subscription System** - Trial management and access control
+- **Analytics AI** - Streaming copilot with plan gating (Pro/Business)
 
 ### Frontend Integration
 

@@ -108,17 +108,35 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
+
+# Analytics AI (required for /ai/query and intent seeding)
+OPENAI_API_KEY=sk-...
+AI_PROVIDER=openai
+# AI_USE_TOOLS=true
+# AI_INTENT_RESOLUTION=true
+# AI_INTENT_AUTO_RUN=true
+# AI_RATE_LIMIT_MAX=10
+
+# Langfuse tracing (optional)
+# LANGFUSE_PUBLIC_KEY=
+# LANGFUSE_SECRET_KEY=
+# LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
 
 #### 5. Database Migration
 
 ```bash
-# Run migrations
-npm run db:migrate
+# Run migrations (includes pgvector + tool_routing + plan entitlements)
+npm run migrate
 
-# Seed initial data
-npm run db:seed
+# Seed roles/plans and other seeders
+npm run seed-all
+
+# Seed intent utterance embeddings (needs OPENAI_API_KEY)
+npm run seed-intent-utterances
 ```
+
+Skip the intent seed if you are not using analytics AI locally.
 
 #### 6. Start Development Server
 
@@ -209,7 +227,7 @@ sudo -u postgres psql -c "CREATE USER uddoktahut WITH ENCRYPTED PASSWORD 'secure
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE uddoktahut_production TO uddoktahut;"
 
 # Run migrations
-NODE_ENV=production npm run db:migrate
+NODE_ENV=production npm run migrate
 ```
 
 #### 5. PM2 Process Management
@@ -514,7 +532,7 @@ docker-compose up -d --build
 docker-compose logs -f app
 
 # Run migrations
-docker-compose exec app npm run db:migrate
+docker-compose exec app npm run migrate
 
 # Scale application
 docker-compose up --scale app=3
@@ -582,7 +600,7 @@ heroku config:set JWT_SECRET=your-secret-key
 git push heroku main
 
 # Run migrations
-heroku run npm run db:migrate
+heroku run npm run migrate
 ```
 
 #### 2. Procfile
@@ -634,7 +652,7 @@ databases:
 pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Test migrations on staging
-NODE_ENV=staging npm run db:migrate
+NODE_ENV=staging npm run migrate
 
 # Verify data integrity
 npm run db:validate
@@ -654,7 +672,7 @@ echo "Starting database migration..."
 pg_dump $DATABASE_URL > "backup_$(date +%Y%m%d_%H%M%S).sql"
 
 # Run migrations
-npm run db:migrate
+npm run migrate
 
 # Verify migrations
 npm run db:status
@@ -669,7 +687,7 @@ chmod +x scripts/migrate.sh
 
 ```bash
 # Rollback last migration
-npm run db:migrate:undo
+npm run migrate:undo
 
 # Rollback to specific migration
 npx sequelize-cli db:migrate:undo:all --to 20241001000000-create-users.cjs
@@ -725,6 +743,19 @@ EMAIL_FROM=noreply@uddoktahut.com
 # SMS Service (Optional)
 SMS_API_KEY=your-sms-api-key
 SMS_SENDER=UddoktaHut
+
+# Analytics AI
+OPENAI_API_KEY=sk-...
+AI_PROVIDER=openai
+AI_USE_TOOLS=true
+AI_INTENT_RESOLUTION=true
+AI_INTENT_AUTO_RUN=true
+AI_RATE_LIMIT_MAX=10
+
+# Langfuse (optional — query tracing)
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
 
 # Logging
 LOG_LEVEL=info
@@ -1051,7 +1082,7 @@ pm2 restart uddoktahut-backend
 
 ```bash
 # Rollback migrations
-npm run db:migrate:undo
+npm run migrate:undo
 
 # Restore from backup
 psql $DATABASE_URL < backup_file.sql

@@ -1,6 +1,6 @@
 # System Architecture
 
-This document provides a comprehensive overview of the UddoktaHut Backend architecture, design patterns, and system components.
+This document describes UddoktaHut Backend architecture. Related: [ENTITLEMENTS.md](./ENTITLEMENTS.md) (plan caps), [AI_COPILOT.md](./AI_COPILOT.md) (analytics chat).
 
 ## 📐 High-Level Architecture
 
@@ -15,26 +15,31 @@ graph TB
 
     API --> Auth[Authentication Middleware]
     API --> Sub[Subscription Middleware]
+    API --> Ent[Entitlement Middleware]
     API --> Valid[Validation Middleware]
 
     Auth --> JWT[JWT Token Service]
     Sub --> SubService[Subscription Service]
+    Ent --> EntSvc[Entitlements + AI Usage]
 
     API --> Controllers[Controllers Layer]
     Controllers --> Services[Business Logic Services]
     Services --> Models[Sequelize Models]
-    Models --> DB[(PostgreSQL Database)]
+    Models --> DB[(PostgreSQL + pgvector)]
 
     API --> Public[Public Store APIs]
     API --> Protected[Protected Owner APIs]
+    API --> AI[/ai Analytics Copilot]
 
     subgraph "External Services"
         Email[Email Service]
-        SMS[SMS Provider]
+        OpenAI[OpenAI API]
+        Langfuse[Langfuse optional]
     end
 
     Services --> Email
-    Services --> SMS
+    AI --> OpenAI
+    AI --> Langfuse
 ```
 
 ## 🏢 Multi-Tenant Architecture
@@ -145,8 +150,9 @@ sequenceDiagram
 
 1. **JWT Authentication** - Verify token validity
 2. **Role-Based Access** - Check user roles
-3. **Subscription Validation** - Verify active subscription
-4. **Resource Ownership** - Ensure data belongs to user's store
+3. **Subscription Validation** - Verify active subscription (trial not expired)
+4. **Plan Entitlements** - Product cap on create; AI access and monthly token budget on `POST /ai/query` ([ENTITLEMENTS.md](./ENTITLEMENTS.md))
+5. **Resource Ownership** - Ensure data belongs to user's store
 
 ## 💳 Subscription Architecture
 
@@ -177,6 +183,51 @@ graph TD
     Valid -->|No| Expired[403 Subscription Expired]
     Valid -->|Yes| Allow[Continue to Controller]
 ```
+
+### Plan entitlements (on top of subscription)
+
+Subscription middleware answers: is the trial/subscription still valid? Entitlement middleware answers: what does this plan allow?
+
+| Check | When | Service |
+|-------|------|---------|
+| `max_products` | `POST /product` create | `productLimitService` |
+| `includes_ai` | `POST /ai/query` | `entitlements.js` |
+| `ai_token_limit_monthly` | before AI query runs | `aiUsageService` |
+
+Token usage is recorded after a successful stream into `ai_usage_monthly` (per store, `YYYY-MM` period). See [ENTITLEMENTS.md](./ENTITLEMENTS.md).
+
+## 🤖 Analytics AI
+
+Store owners on Pro/Business get a streaming analytics copilot at `POST /ai/query`. Code under `app/services/ai/`.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant API as aiController
+    participant E as Entitlements
+    participant R as resolveIntent
+    participant T as Tool handlers
+    participant LLM as OpenAI
+
+    C->>API: question + history (JWT)
+    API->>E: includes_ai + token budget
+    E-->>API: ok or 403
+    API->>R: embed question + recent history
+    R->>R: pgvector match on tool_routing
+    API->>LLM: tool calling loop max 3 rounds
+    LLM->>T: get_store_summary etc
+    T-->>LLM: tenant-scoped SQL results
+    LLM-->>API: answer text
+    API-->>C: text/plain stream
+    API->>E: record tokens_used
+```
+
+- Nine fixed tools — no raw Text-to-SQL; `storeName` injected server-side.
+- Intent routing via `tool_routing` table — seed with `npm run seed-intent-utterances`.
+- Up to 8 history turns; recent turns also feed intent matching.
+- Eval harness: `npm run ai:eval` (same `runCopilot.js` as HTTP).
+
+Details: [AI_COPILOT.md](./AI_COPILOT.md).
 
 ## 📊 Data Flow Architecture
 
@@ -441,7 +492,8 @@ graph TD
 ### Health Checks
 
 - **Database connectivity** checks
-- **External service** availability
+- **`GET /ai/health`** — LLM provider, embedding model, `tool_routing` row count
+- **External service** availability (OpenAI, optional Langfuse)
 - **Memory/CPU usage** monitoring
 - **Response time** tracking
 

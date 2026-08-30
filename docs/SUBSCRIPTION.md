@@ -1,5 +1,7 @@
 # Subscription System Documentation
 
+Plan limits (product cap, AI access, monthly AI tokens) are documented in [ENTITLEMENTS.md](./ENTITLEMENTS.md).
+
 This document provides detailed information about the UddoktaHut Backend subscription system, including trial management, middleware implementation, and subscription lifecycle.
 
 ## 📋 Table of Contents
@@ -31,6 +33,18 @@ The UddoktaHut subscription system implements a **freemium SaaS model** with:
 - ✅ Trial expiration handling
 - ✅ Subscription renewal support
 - ✅ Public store access (read-only) regardless of subscription
+- ✅ Per-plan caps: product count, AI access, monthly AI tokens ([ENTITLEMENTS.md](./ENTITLEMENTS.md))
+
+### Plan tiers (summary)
+
+| Slug | Products | AI | Monthly tokens |
+|------|----------|-----|----------------|
+| trial | 20 | no | 0 |
+| basic | 300 | no | 0 |
+| pro | 700 | yes | 10,000 |
+| business | 2,000 | yes | 50,000 |
+
+New stores start on **trial** (`plan_id` → trial). Self-serve Stripe checkout is not wired yet; use `npm run set-store-plan` in dev/staging.
 
 ## 📊 Subscription Model
 
@@ -410,26 +424,30 @@ const expireSubscription = async (subscriptionId) => {
 
 | User Type   | Subscription Status | Read Access       | Write Access | Store Visibility |
 | ----------- | ------------------- | ----------------- | ------------ | ---------------- |
-| Store Owner | Active Trial        | ✅ Full           | ✅ Full      | ✅ Public        |
-| Store Owner | Active Paid         | ✅ Full           | ✅ Full      | ✅ Public        |
+| Store Owner | Active Trial        | ✅ Full           | ✅ Full*     | ✅ Public        |
+| Store Owner | Active Paid         | ✅ Full           | ✅ Full*     | ✅ Public        |
 | Store Owner | Expired             | ✅ Full           | ❌ Blocked   | ❌ Private       |
+| Store Owner | Pro/Business + AI   | ✅ Full           | ✅ AI chat   | ✅ Public        |
 | Public User | Store Active        | ✅ Store Products | ❌ N/A       | ✅ Public        |
 | Public User | Store Expired       | ❌ Blocked        | ❌ N/A       | ❌ Private       |
+
+\* Product create blocked at `max_products` for the plan. AI chat blocked when `includes_ai` is false or monthly tokens exhausted.
 
 ### Operation Restrictions
 
 #### Write Operations (Subscription Required)
 
-- ✅ `POST /products` - Create product
-- ✅ `PATCH /products/:id` - Update product
-- ✅ `DELETE /products/:id` - Delete product
+- ✅ `POST /product` - Create product (also checked against `max_products`)
+- ✅ `PATCH /product/:id` - Update product
+- ✅ `DELETE /product/:id` - Delete product
 - ✅ `PATCH /store/:storeName/template` - Update template
+- ✅ `POST /ai/query` - Analytics AI (Pro/Business + token budget; separate from subscription expiry middleware)
 
 #### Read Operations (Always Allowed)
 
-- ✅ `GET /products` - Owner's products
-- ✅ `GET /subscription/status` - Subscription info
-- ✅ `GET /auth/me` - User profile
+- ✅ `GET /product` - Owner's products
+- ✅ `GET /subscription/status` - Subscription + plan limits + AI usage
+- ✅ `GET /auth/me` - User profile (if exposed)
 
 #### Public Operations (Store Subscription Required)
 
