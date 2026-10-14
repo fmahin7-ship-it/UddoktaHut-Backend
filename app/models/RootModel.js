@@ -6,6 +6,7 @@ import UserRole from "./UserRole.js";
 import Store from "./Store.js";
 import Subscription from "./Subscription.js";
 import Plan from "./Plan.js";
+import PlanPrice from "./PlanPrice.js";
 import Product from "./Product.js";
 import Order from "./Order.js";
 import OrderItem from "./OrderItem.js";
@@ -56,6 +57,9 @@ Store.belongsTo(User, {
 
 Plan.hasMany(Subscription, { foreignKey: "plan_id" });
 Subscription.belongsTo(Plan, { foreignKey: "plan_id" });
+
+Plan.hasMany(PlanPrice, { foreignKey: "plan_id", onDelete: "CASCADE" });
+PlanPrice.belongsTo(Plan, { foreignKey: "plan_id" });
 
 Store.hasOne(Subscription, { foreignKey: "store_id" });
 Subscription.belongsTo(Store, {
@@ -126,6 +130,7 @@ export {
   Store,
   Subscription,
   Plan,
+  PlanPrice,
   Product,
   Order,
   OrderItem,

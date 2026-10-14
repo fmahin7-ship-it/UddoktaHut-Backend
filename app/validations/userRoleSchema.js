@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MARKET_CODES } from "../constants/markets.js";
 
 const userRolesAndStoreSchema = z.object({
   userId: z
@@ -16,6 +17,9 @@ const userRolesAndStoreSchema = z.object({
   storeName: z.string({ message: "Store name is required" }).min(1),
   storeType: z.string({ message: "Store type is required" }),
   storeAddress: z.string().optional(),
+  country: z
+    .enum(MARKET_CODES, { message: `Country must be one of: ${MARKET_CODES.join(", ")}` })
+    .default("BD"),
 });
 
 export { userRolesAndStoreSchema };

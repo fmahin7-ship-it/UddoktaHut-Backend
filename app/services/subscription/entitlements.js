@@ -22,12 +22,12 @@ const PLAN_ENTITLEMENTS = Object.freeze({
   [PLAN_SLUGS.PRO]: {
     maxProducts: 700,
     includesAi: true,
-    aiTokenLimitMonthly: 10000,
+    aiTokenLimitMonthly: 200000,
   },
   [PLAN_SLUGS.BUSINESS]: {
     maxProducts: 2000,
     includesAi: true,
-    aiTokenLimitMonthly: 50000,
+    aiTokenLimitMonthly: 1000000,
   },
 });
 

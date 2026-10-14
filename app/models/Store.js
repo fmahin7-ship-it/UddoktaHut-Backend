@@ -31,6 +31,11 @@ const Store = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    country: {
+      type: DataTypes.STRING(2),
+      allowNull: false,
+      defaultValue: "BD",
+    },
     template_name: {
       type: DataTypes.STRING,
       allowNull: true,

@@ -269,7 +269,7 @@ function generateFinalTokenAfterOnboarded(validUser, roles, store, onboarded) {
 }
 
 const assignRoleToUserAndCreateStore = async (data) => {
-  const { userId, roles, storeName, storeAddress, storeType } = data;
+  const { userId, roles, storeName, storeAddress, storeType, country } = data;
   const storeSlug = slugifyStoreName(storeName);
   if (!storeSlug) throw new Error("Invalid business name");
 
@@ -306,6 +306,7 @@ const assignRoleToUserAndCreateStore = async (data) => {
         store_address: storeAddress,
         store_type: storeType,
         store_url: resolvedStoreUrl,
+        country,
       },
       transaction
     );

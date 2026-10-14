@@ -63,6 +63,7 @@ const getSubscriptionStatus = async ({ userId }) => {
     template_name: user.Store.template_name,
     storeName: user.Store.store_name,
     storeUrl: user.Store.store_url,
+    country: user.Store.country,
     isActive,
     planSlug: entitlements.planSlug,
     planName: entitlements.planName,
