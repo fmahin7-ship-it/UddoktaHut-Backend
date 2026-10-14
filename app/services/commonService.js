@@ -8,6 +8,7 @@ const generateTokens = (user, onboarded) => {
     onboarded: onboarded,
     roles: user.roles || null,
     storeUrl: user.storeUrl,
+    country: user.country,
   };
   user.email
     ? (data.email = user.email)

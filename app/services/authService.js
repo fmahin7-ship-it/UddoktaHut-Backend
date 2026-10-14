@@ -46,6 +46,7 @@ const getUserToken = async (userData) => {
     storeAddress: user.Store?.store_address,
     storeType: user.Store?.store_type,
     storeUrl: user.Store?.store_url,
+    country: user.Store?.country,
   };
   const onboarded = user.Roles[0]?.user_roles?.onboarded;
   const tokens = generateTokens(payload, onboarded);

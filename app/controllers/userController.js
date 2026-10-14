@@ -7,6 +7,7 @@ import {
   onboardedAccess,
   assignRoleToUserAndCreateStore,
 } from "../services/userService.js";
+import { resolveSignupCountry } from "../utils/requestCountry.js";
 
 const sendEmail = async (req, res, next) => {
   try {
@@ -95,7 +96,10 @@ const userOnboardedAccess = async (req, res, next) => {
 
 const addRolesToUserAndStore = async (req, res, next) => {
   try {
-    const verifiedTokens = await assignRoleToUserAndCreateStore(req.body);
+    const verifiedTokens = await assignRoleToUserAndCreateStore({
+      ...req.body,
+      country: resolveSignupCountry(req, req.body.country),
+    });
     if (!verifiedTokens)
       return res.status(400).json({
         onboarded: false,

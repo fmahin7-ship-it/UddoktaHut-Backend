@@ -8,10 +8,12 @@ const MARKET_CODES = Object.freeze(Object.keys(MARKETS));
 
 const DEFAULT_MARKET = MARKETS.AU.code;
 
+const isMarket = (value) => Boolean(MARKETS[value]);
+
 /** Any country without its own market is billed in the default market. */
 const marketFromCountry = (country) => {
   const code = String(country ?? "").toUpperCase();
-  return MARKETS[code] ? code : DEFAULT_MARKET;
+  return isMarket(code) ? code : DEFAULT_MARKET;
 };
 
-export { MARKETS, MARKET_CODES, DEFAULT_MARKET, marketFromCountry };
+export { MARKETS, MARKET_CODES, DEFAULT_MARKET, isMarket, marketFromCountry };

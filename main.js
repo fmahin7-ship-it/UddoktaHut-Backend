@@ -9,6 +9,10 @@ import cookieParser from "cookie-parser";
 const app = express();
 const port = env.PORT || 4000;
 
+// Render's load balancer is one proxy hop; req.ip is then the real client IP
+// (used for signup country lookup and AI rate limiting).
+app.set("trust proxy", env.isProd ? 1 : false);
+
 app.use(express.json());
 app.use(
   cors(

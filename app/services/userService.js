@@ -253,6 +253,7 @@ function generateFinalTokenAfterOnboarded(validUser, roles, store, onboarded) {
         storeAddress: store.store_address,
         storeType: store.store_type,
         storeUrl: store.store_url,
+        country: store.country,
       }
     : {
         id: validUser.id,
@@ -262,6 +263,7 @@ function generateFinalTokenAfterOnboarded(validUser, roles, store, onboarded) {
         storeAddress: store.store_address,
         storeType: store.store_type,
         storeUrl: store.store_url,
+        country: store.country,
       };
 
   const tokens = generateTokens(payload, onboarded);
@@ -318,6 +320,7 @@ const assignRoleToUserAndCreateStore = async (data) => {
       store_address: storeAddress,
       store_type: storeType,
       store_url: resolvedStoreUrl,
+      country: store.country,
     };
 
     if (userRoles?.length && store)

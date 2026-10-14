@@ -28,6 +28,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "geoip-country": "^5.0.202610140208",
     "google-libphonenumber": "^3.2.40",
     "jsonwebtoken": "^9.0.2",
     "langfuse": "^3.38.20",
