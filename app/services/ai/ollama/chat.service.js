@@ -1,4 +1,5 @@
 import { throwError } from "../../../lib/throwError.js";
+import { addModelTokens } from "../observability/usageMeter.js";
 import { CHAT_MODEL, OLLAMA_BASE_URL } from "./client.js";
 
 const CHAT_OPTIONS = {
@@ -49,7 +50,14 @@ const streamChat = async (input, { model = CHAT_MODEL, stream = true } = {}) => 
 const completeChat = async (input, options = {}) => {
   const response = await streamChat(input, { ...options, stream: false });
   const data = await response.json();
+  recordOllamaUsage(data);
   return data.response?.trim() || "";
 };
 
-export { streamChat, completeChat };
+/** Ollama reports token counts on the final (done) response object. */
+const recordOllamaUsage = (data) => {
+  if (!data?.done) return;
+  addModelTokens((data.prompt_eval_count ?? 0) + (data.eval_count ?? 0));
+};
+
+export { streamChat, completeChat, recordOllamaUsage };

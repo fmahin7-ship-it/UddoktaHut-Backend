@@ -1,3 +1,4 @@
+import { addModelTokens } from "../observability/usageMeter.js";
 import { EMBEDDING_MODEL, getOpenAIClient } from "./client.js";
 
 const embedText = async (text) => {
@@ -5,6 +6,7 @@ const embedText = async (text) => {
     model: EMBEDDING_MODEL,
     input: text,
   });
+  addModelTokens(response.usage?.total_tokens);
 
   const embedding = response.data[0]?.embedding;
   if (!embedding) {

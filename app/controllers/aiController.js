@@ -4,6 +4,8 @@ import {
   processAIQueryStream,
 } from "../services/ai/aiService.js";
 import { runWithAITrace } from "../services/ai/observability/aiTrace.js";
+import { runWithUsageMeter } from "../services/ai/observability/usageMeter.js";
+import { recordOllamaUsage } from "../services/ai/ollama/chat.service.js";
 import {
   fetchRecentTraceCount,
   isLangfuseEnabled,
@@ -25,35 +27,37 @@ const queryAIStream = async (req, res, next) => {
 
     let answerText = "";
 
-    await runWithAITrace(
-      {
-        question,
-        storeName,
-        userId: req.user?.id,
-        provider: servicesStatus.provider,
-        useRAG: false,
-      },
-      async () => {
-        const result = await processAIQueryStream(question, storeName, {
-          useRAG,
-          history,
-        });
+    const { usage } = await runWithUsageMeter(() =>
+      runWithAITrace(
+        {
+          question,
+          storeName,
+          userId: req.user?.id,
+          provider: servicesStatus.provider,
+          useRAG: false,
+        },
+        async () => {
+          const result = await processAIQueryStream(question, storeName, {
+            useRAG,
+            history,
+          });
 
-        if (!result.stream) {
-          answerText = result.data?.answer ?? result.metadata?.message ?? "";
-          res.write(answerText);
-          res.end();
-          return result;
+          if (!result.stream) {
+            answerText = result.data?.answer ?? result.metadata?.message ?? "";
+            res.write(answerText);
+            res.end();
+            return result;
+          }
+
+          answerText = await pipeStreamToResponse(result.stream, res);
+          return { ...result, answerPreview: answerText.slice(0, 500) };
         }
-
-        answerText = await pipeStreamToResponse(result.stream, res);
-        return { ...result, answerPreview: answerText };
-      }
+      )
     );
 
     if (storeId) {
       const tokens =
-        req.recordAiUsage?.(answerText) ??
+        usage.totalTokens ||
         estimateTokens(
           `${question}${answerText}${history.map((t) => t.content).join("")}`
         );
@@ -90,7 +94,7 @@ const getServiceHealth = async (req, res, next) => {
 async function pipeStreamToResponse(stream, res) {
   const reader = stream.body.getReader();
   const decoder = new TextDecoder();
-  let answerPreview = "";
+  let answerText = "";
 
   try {
     while (true) {
@@ -103,8 +107,9 @@ async function pipeStreamToResponse(stream, res) {
 
         try {
           const data = JSON.parse(line);
+          recordOllamaUsage(data);
           if (data.response) {
-            answerPreview += data.response;
+            answerText += data.response;
             if (!res.writableEnded) {
               res.write(data.response);
             }
@@ -126,7 +131,7 @@ async function pipeStreamToResponse(stream, res) {
     }
   }
 
-  return answerPreview.slice(0, 500);
+  return answerText;
 }
 
 export { queryAIStream, getServiceHealth, getTracingDebug };

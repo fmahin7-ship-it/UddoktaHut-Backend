@@ -1,9 +1,12 @@
 import { throwError } from "../../../lib/throwError.js";
 import { getActiveTrace } from "../observability/aiTrace.js";
+import { addModelTokens } from "../observability/usageMeter.js";
 import { CHAT_MODEL, getOpenAIClient } from "./client.js";
 
 const CHAT_DEFAULTS = { temperature: 0.3, max_tokens: 300 };
 const SQL_DEFAULTS = { temperature: 0.1, max_tokens: 500 };
+/** Without this, streamed completions report no token usage. */
+const STREAM_OPTIONS = { stream_options: { include_usage: true } };
 
 const toMessages = (input) => {
   if (typeof input === "string") {
@@ -23,6 +26,8 @@ const toUsage = (usage) => {
     return undefined;
   }
 
+  addModelTokens(usage.total_tokens);
+
   return {
     promptTokens: usage.prompt_tokens,
     completionTokens: usage.completion_tokens,
@@ -33,6 +38,7 @@ const toUsage = (usage) => {
 const toCompatibleStream = (openaiStream, generation, trace) => {
   const encoder = new TextEncoder();
   let fullOutput = "";
+  let usage;
   let resolveComplete;
   const completed = new Promise((resolve) => {
     resolveComplete = resolve;
@@ -42,6 +48,9 @@ const toCompatibleStream = (openaiStream, generation, trace) => {
     async start(controller) {
       try {
         for await (const chunk of openaiStream) {
+          if (chunk.usage) {
+            usage = toUsage(chunk.usage);
+          }
           const text = chunk.choices[0]?.delta?.content;
           if (text) {
             fullOutput += text;
@@ -51,7 +60,7 @@ const toCompatibleStream = (openaiStream, generation, trace) => {
           }
         }
 
-        generation?.end({ output: fullOutput });
+        generation?.end({ output: fullOutput, usage });
         trace?.update({
           output: {
             answerPreview: fullOutput.slice(0, 500),
@@ -94,6 +103,7 @@ const streamChat = async (
       model,
       messages: toMessages(input),
       stream: true,
+      ...STREAM_OPTIONS,
       ...CHAT_DEFAULTS,
       ...options,
     });
@@ -206,6 +216,7 @@ const streamChatMessages = async (
       model,
       messages,
       stream: true,
+      ...STREAM_OPTIONS,
       ...CHAT_DEFAULTS,
       ...options,
     });

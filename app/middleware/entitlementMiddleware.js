@@ -6,10 +6,7 @@ import {
 import { createAppError } from "../lib/appError.js";
 import { SUBSCRIPTION_ERROR_CODES } from "../constants/plans.js";
 import { assertCanCreateProduct } from "../services/subscription/productLimitService.js";
-import {
-  assertCanUseAi,
-  estimateTokens,
-} from "../services/subscription/aiUsageService.js";
+import { assertCanUseAi } from "../services/subscription/aiUsageService.js";
 
 const sendContextError = (res, error) =>
   res.status(error.statusCode || 500).json({
@@ -77,12 +74,6 @@ const requireAiEntitlement = async (req, res, next) => {
       tokenLimit: entitlements.aiTokenLimitMonthly,
       question,
     });
-
-    req.recordAiUsage = (answerText = "") => {
-      const tokens = estimateTokens(`${question}${answerText}`);
-      req.aiTokensRecorded = tokens;
-      return tokens;
-    };
 
     next();
   } catch (error) {
