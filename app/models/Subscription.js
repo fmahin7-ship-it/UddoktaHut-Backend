@@ -20,6 +20,16 @@ const Subscription = sequelize.define(
       references: { model: "plans", key: "id" },
       allowNull: true,
     },
+    stripe_customer_id: { type: DataTypes.STRING, allowNull: true },
+    stripe_subscription_id: { type: DataTypes.STRING, allowNull: true },
+    /** 'stripe' once billed through Stripe; null for trial and manual plans. */
+    billing_provider: { type: DataTypes.STRING, allowNull: true },
+    /** True after cancel: stay on the plan until end_date, then do not renew. */
+    cancel_at_period_end: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     tableName: "subscriptions",

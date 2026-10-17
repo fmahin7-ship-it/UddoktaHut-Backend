@@ -73,6 +73,10 @@ export const env = {
   ),
   /** High-confidence tier: run matched tool before LLM (skip tool-pick round). */
   AI_INTENT_AUTO_RUN: process.env.AI_INTENT_AUTO_RUN !== "false",
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
+  STRIPE_PRICE_PRO: process.env.STRIPE_PRICE_PRO || "",
+  /** Set in A3, when the webhook route is added. */
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
   isProd: process.env.NODE_ENV === "production",
   isDev: process.env.NODE_ENV === "development",
 };

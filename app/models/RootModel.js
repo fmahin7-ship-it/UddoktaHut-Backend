@@ -13,6 +13,7 @@ import OrderItem from "./OrderItem.js";
 import OrderReturn from "./OrderReturn.js";
 import OrderReturnItem from "./OrderReturnItem.js";
 import AiUsageMonthly from "./AiUsageMonthly.js";
+import BillingWebhookEvent from "./BillingWebhookEvent.js";
 
 // USER_ROLE (MANY TO MANY)
 User.belongsToMany(Role, {
@@ -137,4 +138,5 @@ export {
   OrderReturn,
   OrderReturnItem,
   AiUsageMonthly,
+  BillingWebhookEvent,
 };
