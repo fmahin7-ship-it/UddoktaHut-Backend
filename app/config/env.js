@@ -77,6 +77,12 @@ export const env = {
   STRIPE_PRICE_PRO: process.env.STRIPE_PRICE_PRO || "",
   /** Set in A3, when the webhook route is added. */
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
+  /** Where Stripe sends the seller after checkout. */
+  APP_PUBLIC_URL:
+    process.env.APP_PUBLIC_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "https://uddoktahut.com"
+      : "http://uddoktahut.local:3000"),
   isProd: process.env.NODE_ENV === "production",
   isDev: process.env.NODE_ENV === "development",
 };

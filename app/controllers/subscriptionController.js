@@ -2,6 +2,7 @@ import {
   getSubscribedStore,
   getSubscriptionStatus,
 } from "../services/subscriptionService.js";
+import { createCheckoutSession } from "../services/billing/createCheckoutSession.js";
 
 const subscriptionStatus = async (req, res, next) => {
   try {
@@ -22,4 +23,16 @@ const subscribedStore = async (req, res, next) => {
   }
 };
 
-export { subscriptionStatus, subscribedStore };
+const createCheckout = async (req, res, next) => {
+  try {
+    const { url } = await createCheckoutSession({
+      user: req.user,
+      planSlug: req.body.plan,
+    });
+    res.status(200).json({ url });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export { subscriptionStatus, subscribedStore, createCheckout };

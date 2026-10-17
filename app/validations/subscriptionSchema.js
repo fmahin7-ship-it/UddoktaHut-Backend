@@ -10,4 +10,12 @@ const subscribedStoreSchema = z.object({
   storeName: z.string({ message: "Store name is required" }),
 });
 
-export { subscriptionSchema, subscribedStoreSchema };
+const checkoutSchema = z.object({
+  plan: z.literal("pro", {
+    errorMap: () => ({
+      message: "Only the Pro plan can be checked out right now.",
+    }),
+  }),
+});
+
+export { subscriptionSchema, subscribedStoreSchema, checkoutSchema };
