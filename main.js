@@ -5,6 +5,7 @@ import { rootRoute } from "./app/routes/rootRoute.js";
 import { errorHandler } from "./app/middleware/errorHandler.js";
 import { syncSequlizeBasedOnEnvironment } from "./app/models/RootModel.js";
 import cookieParser from "cookie-parser";
+import { stripeWebhook } from "./app/controllers/billingWebhookController.js";
 
 const app = express();
 const port = env.PORT || 4000;
@@ -12,6 +13,13 @@ const port = env.PORT || 4000;
 // Render's load balancer is one proxy hop; req.ip is then the real client IP
 // (used for signup country lookup and AI rate limiting).
 app.set("trust proxy", env.isProd ? 1 : false);
+
+// Stripe signs the raw body. This route must run before express.json().
+app.post(
+  "/subscription/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhook
+);
 
 app.use(express.json());
 app.use(
