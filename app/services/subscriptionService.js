@@ -75,6 +75,8 @@ const getSubscriptionStatus = async ({ userId }) => {
     aiTokensUsed: aiUsage?.used ?? 0,
     aiTokensRemaining: aiUsage?.remaining ?? 0,
     subscriptionStatus: subscription.status,
+    endDate: subscription.end_date,
+    cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
   };
 
   return { user: userData };
