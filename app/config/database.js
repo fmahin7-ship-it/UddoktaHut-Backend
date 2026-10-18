@@ -1,21 +1,9 @@
 import { Sequelize } from "sequelize";
-import { env } from "./env.js";
+import { buildDatabaseConfig } from "./databaseConfig.js";
 
-const isProduction = env.NODE_ENV === "production";
+const databaseConfig = buildDatabaseConfig();
+const { username, password, database, ...options } = databaseConfig;
 
-const sequelize = new Sequelize(env.DB_NAME, env.DB_USER, env.DB_PASS, {
-  host: env.DB_HOST,
-  port: env.DB_PORT,
-  dialect: "postgres",
-  logging: false,
-  dialectOptions: isProduction
-    ? {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false,
-        },
-      }
-    : { ssl: false },
-});
+const sequelize = new Sequelize(database, username, password, options);
 
 export { sequelize };

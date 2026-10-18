@@ -8,13 +8,13 @@
  * Requires: migration run, OPENAI_API_KEY, pgvector extension.
  */
 import dotenv from "dotenv";
-import { generateEmbedding } from "../app/services/ai/provider.js";
-import { INTENT_UTTERANCES } from "../app/services/ai/intent/utterances/intentUtterances.js";
+import { generateEmbedding } from "../app/modules/ai/provider.js";
+import { INTENT_UTTERANCES } from "../app/modules/ai/intent/utterances/intentUtterances.js";
 import {
   clearIntentUtterances,
   countIntentUtterances,
   insertIntentUtterance,
-} from "../app/services/ai/intent/intentVectorStore.js";
+} from "../app/modules/ai/intent/intentVectorStore.js";
 import { sequelize } from "../app/config/database.js";
 
 dotenv.config();

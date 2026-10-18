@@ -13,16 +13,16 @@ import { fileURLToPath } from "node:url";
 
 import { sequelize } from "../app/config/database.js";
 import { Store } from "../app/models/RootModel.js";
-import { runCopilot } from "../app/services/ai/copilot/runCopilot.js";
-import { scoreCase } from "../app/services/ai/evals/scoreCase.js";
-import { checkAIServices } from "../app/services/ai/aiService.js";
+import { runCopilot } from "../app/modules/ai/copilot/runCopilot.js";
+import { scoreCase } from "../app/modules/ai/evals/scoreCase.js";
+import { checkAIServices } from "../app/modules/ai/aiService.js";
 
 dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const goldenPath = join(
   __dirname,
-  "../app/services/ai/evals/golden/routing.json"
+  "../app/modules/ai/evals/golden/routing.json"
 );
 
 const parseMinPass = () => {

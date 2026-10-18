@@ -2,11 +2,11 @@ import {
   loadOwnerStoreContext,
   loadStoreWithSubscription,
   assertActiveSubscription,
-} from "../services/subscription/ownerContext.js";
+} from "../modules/subscriptions/ownerContext.js";
 import { createAppError } from "../lib/appError.js";
 import { SUBSCRIPTION_ERROR_CODES } from "../constants/plans.js";
-import { assertCanCreateProduct } from "../services/subscription/productLimitService.js";
-import { assertCanUseAi } from "../services/subscription/aiUsageService.js";
+import { assertCanCreateProduct } from "../modules/subscriptions/productLimitService.js";
+import { assertCanUseAi } from "../modules/subscriptions/aiUsageService.js";
 
 const sendContextError = (res, error) =>
   res.status(error.statusCode || 500).json({

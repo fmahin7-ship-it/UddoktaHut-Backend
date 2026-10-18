@@ -1,16 +1,18 @@
-import { authRoutes } from "./authRoutes.js";
-import { storeRoutes } from "./storeRoutes.js";
-import { subscriptionRoutes } from "./subscriptionRoutes.js";
-import { userRoutes } from "./userRoutes.js";
-import productRoutes from "./productRoutes.js";
-import orderRoutes from "./orderRoutes.js";
-import { aiRoutes } from "./aiRoutes.js";
-import { planRoutes } from "./planRoutes.js";
+import { authRoutes } from "../modules/auth/auth.routes.js";
+import { storeRoutes } from "../modules/stores/stores.routes.js";
+import { billingRoutes } from "../modules/billing/billing.routes.js";
+import { subscriptionRoutes } from "../modules/subscriptions/subscriptions.routes.js";
+import { userRoutes } from "../modules/users/users.routes.js";
+import productRoutes from "../modules/products/products.routes.js";
+import orderRoutes from "../modules/orders/orders.routes.js";
+import { aiRoutes } from "../modules/ai/ai.routes.js";
+import { planRoutes } from "../modules/plans/plans.routes.js";
 
 const rootRoute = (app) => {
   app.use("/auth", authRoutes);
   app.use("/user", userRoutes);
   app.use("/store", storeRoutes);
+  app.use("/subscription", billingRoutes);
   app.use("/subscription", subscriptionRoutes);
   app.use("/plans", planRoutes);
   app.use("/product", productRoutes);

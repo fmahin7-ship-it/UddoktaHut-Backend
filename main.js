@@ -5,7 +5,7 @@ import { rootRoute } from "./app/routes/rootRoute.js";
 import { errorHandler } from "./app/middleware/errorHandler.js";
 import { syncSequlizeBasedOnEnvironment } from "./app/models/RootModel.js";
 import cookieParser from "cookie-parser";
-import { stripeWebhook } from "./app/controllers/billingWebhookController.js";
+import { stripeWebhook } from "./app/modules/billing/billing.controller.js";
 
 const app = express();
 const port = env.PORT || 4000;
