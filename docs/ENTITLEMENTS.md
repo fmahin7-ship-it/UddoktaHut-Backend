@@ -50,9 +50,9 @@ That updates `subscriptions.plan_id` for the owner's store.
 
 ```
 app/constants/plans.js
-app/services/subscription/entitlements.js
-app/services/subscription/productLimitService.js
-app/services/subscription/aiUsageService.js
+app/modules/subscriptions/entitlements.js
+app/modules/subscriptions/productLimitService.js
+app/modules/subscriptions/aiUsageService.js
 app/middleware/entitlementMiddleware.js
 scripts/set-store-plan.js
 ```

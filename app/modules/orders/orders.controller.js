@@ -1,5 +1,4 @@
 import {
-  createStoreOrder,
   listStoreOrders,
   getStoreOrderById,
   updateOrderStatus,
@@ -7,15 +6,6 @@ import {
   updateReturnStatus,
   listOrderReturns,
 } from "./orders.service.js";
-
-const placeStoreOrder = async (req, res, next) => {
-  try {
-    const order = await createStoreOrder(req.params.storeName, req.body);
-    res.status(201).json({ success: true, data: order });
-  } catch (err) {
-    next(err);
-  }
-};
 
 const getOrders = async (req, res, next) => {
   try {
@@ -84,7 +74,6 @@ const patchReturnStatus = async (req, res, next) => {
 };
 
 export {
-  placeStoreOrder,
   getOrders,
   getOrderById,
   patchOrderStatus,

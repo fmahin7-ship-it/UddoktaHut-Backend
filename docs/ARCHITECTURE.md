@@ -198,7 +198,7 @@ Token usage is recorded after a successful stream into `ai_usage_monthly` (per s
 
 ## 🤖 Analytics AI
 
-Store owners on Pro/Business get a streaming analytics copilot at `POST /ai/query`. Code under `app/services/ai/`.
+Store owners on Pro/Business get a streaming analytics copilot at `POST /ai/query`. Code under `app/modules/ai/`.
 
 ```mermaid
 sequenceDiagram

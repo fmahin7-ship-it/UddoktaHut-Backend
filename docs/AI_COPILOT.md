@@ -31,7 +31,7 @@ Langfuse traces are optional (`LANGFUSE_*` env vars). Each query can be traced a
 | `get_top_selling_products` | Best sellers for a period |
 | `get_returns_summary` | Return/refund aggregates |
 
-Handlers sit in `app/services/ai/tools/`. The LLM never runs raw SQL.
+Handlers sit in `app/modules/ai/tools/`. The LLM never runs raw SQL.
 
 ## Chat history
 
@@ -73,18 +73,18 @@ npm run ai:eval
 # optional: EVAL_STORE_NAME=my-store npm run ai:eval -- --min-pass=85
 ```
 
-Cases live in `app/services/ai/evals/golden/routing.json`. The runner calls the same copilot path with `collectAnswer: true` and checks tools used (and soft refusal on off-topic prompts).
+Cases live in `app/modules/ai/evals/golden/routing.json`. The runner calls the same copilot path with `collectAnswer: true` and checks tools used (and soft refusal on off-topic prompts).
 
 ## Code map
 
 ```
-app/routes/aiRoutes.js
-app/controllers/aiController.js
-app/services/ai/copilot/runCopilot.js    # shared stream + eval entry
-app/services/ai/copilot/prompts.js
-app/services/ai/intent/                  # pgvector utterance match
-app/services/ai/tools/
-app/services/ai/chat/chatHistory.js      # normalize history + intent query text
+app/modules/ai/ai.routes.js
+app/modules/ai/ai.controller.js
+app/modules/ai/copilot/runCopilot.js    # shared stream + eval entry
+app/modules/ai/copilot/prompts.js
+app/modules/ai/intent/                  # pgvector utterance match
+app/modules/ai/tools/
+app/modules/ai/chat/chatHistory.js      # normalize history + intent query text
 scripts/run-ai-evals.js
 ```
 

@@ -8,8 +8,8 @@ import {
   getPublicStoreProducts,
   updateTemplate,
   getOwnerStore,
+  placeStoreOrder,
 } from "./stores.controller.js";
-import { placeStoreOrder } from "../orders/orders.controller.js";
 import { paginationQuerySchema } from "../../validations/paginationSchema.js";
 import { createOrderSchema } from "../orders/orders.schema.js";
 import { authenticateUser } from "../../middleware/authMiddleware.js";

@@ -277,13 +277,13 @@ For complete deployment guide, see [DEPLOYMENT.md](https://github.com/fmahin7-sh
 UddoktaHut-Backend/
 ├── app/
 │   ├── config/          # Database and app configuration
-│   ├── controllers/     # Request handlers
 │   ├── middleware/      # Authentication, validation, subscription
 │   ├── models/          # Sequelize models
-│   ├── routes/          # Express routes
-│   ├── services/        # Business logic
+│   ├── modules/         # Feature modules (routes, controllers, services)
+│   ├── routes/          # Mounts the feature modules
+│   ├── services/        # Shared token and cookie helpers
 │   ├── utils/           # Constants and utilities
-│   └── validations/     # Zod validation schemas
+│   └── validations/     # Shared request schemas
 ├── config/              # Sequelize configuration
 ├── migrations/          # Database migrations
 ├── seeders/            # Database seeders
