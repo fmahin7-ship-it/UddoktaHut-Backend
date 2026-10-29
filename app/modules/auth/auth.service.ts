@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.ts";
 import { findUserForLogin } from "../../db/userQueries.ts";
-import { assertFound } from "../../lib/throwError.ts";
+import { assertFound, throwError } from "../../lib/throwError.ts";
 
 const emailPasswordMissMatch = (): never => {
   const error = new Error("Invalid email or password") as Error & {
@@ -21,7 +21,7 @@ const getUserToken = async (userData: {
   const { email, phoneNumber, password } = userData;
 
   if (!email && !phoneNumber)
-    throw new Error("Please sign in using your email or phone");
+    throwError("Please sign in using your email or phone", 400);
 
   const user = await findUserForLogin(
     email ? { email } : { phone_number: phoneNumber }
