@@ -3,7 +3,7 @@
 This document covers the UddoktaHut Backend database schema. For plan limits and AI usage rules see [ENTITLEMENTS.md](./ENTITLEMENTS.md); for copilot tables in context see [AI_COPILOT.md](./AI_COPILOT.md).
 
 **Database Type:** PostgreSQL  
-**ORM:** Sequelize  
+**ORM:** Drizzle ORM (`app/db/schema/`, `app/db/client.ts`)  
 **Architecture:** Multi-tenant with Row-Level Security  
 **Migration Strategy:** Version-controlled schema changes
 
@@ -288,7 +288,7 @@ Seeded values match [ENTITLEMENTS.md](./ENTITLEMENTS.md). Migration: `2025062114
 ### ToolRouting (pgvector)
 
 **Table:** `tool_routing`  
-**Purpose:** Example questions + embeddings for intent → tool routing (not a Sequelize model; raw SQL in `intentVectorStore.js`)
+**Purpose:** Example questions + embeddings for intent → tool routing (Drizzle schema + raw SQL in `intentVectorStore.ts`)
 
 | Column            | Type           | Description                    |
 | ----------------- | -------------- | ------------------------------ |
@@ -384,122 +384,26 @@ graph TD
     ActiveValid -->|No| Block
 ```
 
-## 🔄 Migration Strategy
+## 🔄 Migration Strategy (Drizzle)
 
-### Migration Files Structure
-
-```
-migrations/
-├── 20241001000000-create-users.cjs
-├── 20241001000001-create-roles.cjs
-├── 20241001000002-create-user-roles.cjs
-├── 20241001000003-create-stores.cjs
-├── 20241001000004-create-plans.cjs
-├── 20241001000005-create-subscriptions.cjs
-├── 20241001000006-create-products.cjs
-├── 20241007000000-add-product-search-indexes.cjs
-├── 20251013000000-add-template-name-to-stores.cjs
-├── 20250609120000-enable-pgvector-tool-routing.cjs
-└── 20250621140000-plan-entitlements-and-ai-usage.cjs
-```
-
-After migrations on a fresh DB:
+Schema lives in `app/db/schema/`. SQL migrations live in `drizzle/` (see `docs/MIGRATIONS.md`).
 
 ```bash
-npm run migrate
-npm run seed-all              # roles, plans, etc.
-npm run seed-intent-utterances  # tool_routing embeddings (needs OPENAI_API_KEY)
+# After editing app/db/schema/*.ts
+npm run db:generate -- --name=describe-change
+npm run db:migrate          # local
+npm run migrate:prod        # production / Docker (node dist/migrate.js)
+
+# Intent routing embeddings (needs OPENAI_API_KEY)
+npm run seed-intent-utterances
 ```
 
-### Migration Best Practices
+### Best practices
 
-1. **Incremental Changes**: Each migration performs single logical change
-2. **Rollback Support**: All migrations include `up` and `down` methods
-3. **Data Safety**: Use transactions for complex migrations
-4. **Index Creation**: Add indexes in separate migrations for performance
-
-### Example Migration
-
-```javascript
-"use strict";
-
-module.exports = {
-  async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("products", {
-      id: {
-        allowNull: false,
-        autoIncrement: true,
-        primaryKey: true,
-        type: Sequelize.INTEGER,
-      },
-      store_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: "stores",
-          key: "id",
-        },
-        onUpdate: "CASCADE",
-        onDelete: "CASCADE",
-      },
-      name: {
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
-      // ... other fields
-      created_at: {
-        allowNull: false,
-        type: Sequelize.DATE,
-      },
-      updated_at: {
-        allowNull: false,
-        type: Sequelize.DATE,
-      },
-    });
-
-    // Add indexes
-    await queryInterface.addIndex("products", ["store_id", "status"]);
-    await queryInterface.addIndex("products", ["name"]);
-  },
-
-  async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("products");
-  },
-};
-```
-
-## 🌱 Seeders
-
-### Initial Data Population
-
-```
-seeders/
-└── 20250411125346-role-seed.cjs
-```
-
-### Role Seeder Example
-
-```javascript
-"use strict";
-
-module.exports = {
-  async up(queryInterface, Sequelize) {
-    const roles = [
-      { role_name: "admin", created_at: new Date() },
-      { role_name: "store_owner", created_at: new Date() },
-      { role_name: "customer", created_at: new Date() },
-    ];
-
-    await queryInterface.bulkInsert("roles", roles, {
-      updateOnDuplicate: ["role_name"],
-    });
-  },
-
-  async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete("roles", null, {});
-  },
-};
-```
+1. Never edit a migration after it has been applied anywhere.
+2. Read every generated `.sql` before committing (`DROP` / type changes especially).
+3. Never use `drizzle-kit push` on production.
+4. Test DB: `npm run db:prepare-test` then `npm test`.
 
 ## 🔍 Query Patterns
 

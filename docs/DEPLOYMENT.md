@@ -690,7 +690,8 @@ chmod +x scripts/migrate.sh
 npm run migrate:undo
 
 # Rollback to specific migration
-npx sequelize-cli db:migrate:undo:all --to 20241001000000-create-users.cjs
+# Prefer Drizzle Kit for schema changes (`npm run db:generate` / `npm run migrate:prod`).
+# See docs/MIGRATIONS.md.
 
 # Restore from backup
 psql $DATABASE_URL < backup_20241019_120000.sql

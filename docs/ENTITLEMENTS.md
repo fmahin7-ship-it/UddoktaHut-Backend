@@ -13,7 +13,7 @@ Each store's subscription row points at a `plans` record (`slug`, `max_products`
 | `pro` | 700 | yes | 10,000 |
 | `business` | 2000 | yes | 50,000 |
 
-Migration: `migrations/20250621140000-plan-entitlements-and-ai-usage.cjs`.
+Plan entitlements live in `app/db/schema/plans.ts` and `app/modules/subscriptions/entitlements.ts` (old Sequelize migration removed; see Git history if needed).
 
 ## What gets enforced
 

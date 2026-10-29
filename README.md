@@ -130,7 +130,7 @@ For complete API documentation, see [API.md](https://github.com/fmahin7-ship-it/
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22.6+ (native TypeScript via `--experimental-strip-types`)
 - PostgreSQL 12+
 - npm or yarn
 
@@ -207,7 +207,7 @@ EMAIL_PASS=your-app-password
 
 ### Database Configuration
 
-The application uses Sequelize ORM with PostgreSQL. Configuration is managed in `config/config.js`.
+The application uses **Drizzle ORM** with PostgreSQL. Schema lives in `app/db/schema/`; connection pool in `app/db/client.ts`. Dev sync: `npm run db:sync-dev` (Drizzle push + pgvector).
 
 ## 🎯 Usage
 
@@ -266,7 +266,7 @@ For detailed subscription documentation, see [SUBSCRIPTION.md](https://github.co
 
 ```bash
 # Production migration
-NODE_ENV=production npx sequelize-cli db:migrate
+NODE_ENV=production npm run db:migrate
 ```
 
 For complete deployment guide, see [DEPLOYMENT.md](https://github.com/fmahin7-ship-it/UddoktaHut-Backend/blob/main/docs/DEPLOYMENT.md)
@@ -278,17 +278,15 @@ UddoktaHut-Backend/
 ├── app/
 │   ├── config/          # Database and app configuration
 │   ├── middleware/      # Authentication, validation, subscription
-│   ├── models/          # Sequelize models
+│   ├── db/              # Drizzle client + schema
 │   ├── modules/         # Feature modules (routes, controllers, services)
 │   ├── routes/          # Mounts the feature modules
 │   ├── services/        # Shared token and cookie helpers
 │   ├── utils/           # Constants and utilities
 │   └── validations/     # Shared request schemas
-├── config/              # Sequelize configuration
-├── migrations/          # Database migrations
-├── seeders/            # Database seeders
+├── drizzle/            # Drizzle SQL migrations (+ meta/)
 ├── docs/               # Documentation files
-├── main.js             # Application entry point
+├── main.ts             # Application entry point
 └── package.json        # Dependencies and scripts
 ```
 

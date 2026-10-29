@@ -24,7 +24,7 @@ graph TB
 
     API --> Controllers[Controllers Layer]
     Controllers --> Services[Business Logic Services]
-    Services --> Models[Sequelize Models]
+    Services --> Models[Drizzle schema + db client]
     Models --> DB[(PostgreSQL + pgvector)]
 
     API --> Public[Public Store APIs]
@@ -113,7 +113,7 @@ graph LR
 
 #### 3. **Data Access Layer**
 
-- **Models** - Sequelize ORM models
+- **Database** - Drizzle ORM (`app/db/schema`, `app/db/client.ts`)
 - **Migrations** - Database schema versioning
 - **Seeders** - Initial data population
 
