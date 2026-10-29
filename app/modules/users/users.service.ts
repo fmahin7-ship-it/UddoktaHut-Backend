@@ -17,7 +17,13 @@ import { env } from "../../config/env.ts";
 import { getTrialPlanId } from "../subscriptions/planCatalog.ts";
 import nodemailer from "nodemailer";
 import { generateTokens } from "../../services/commonService.ts";
-import { slugifyStoreName, buildStoreUrl } from "../../utils/storeUrl.ts";
+import {
+  slugifyStoreName,
+  buildStoreUrl,
+  isReservedStoreSlug,
+  MAX_STORE_SLUG_LENGTH,
+} from "../../utils/storeUrl.ts";
+import { assertFound, throwError } from "../../lib/throwError.ts";
 import type { Database } from "../../db/client.ts";
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -45,7 +51,8 @@ const sendEmailVarification = async (data: {
   const userExist = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
-  if (userExist) throw new Error("User already exist");
+  if (userExist)
+    throwError("An account with this email already exists. Please log in.", 409);
 
   const { hashedPassword } = await passwordHashing(password);
   const otp = generateOtp();
@@ -66,8 +73,12 @@ const sendEmailVarification = async (data: {
     },
   });
 
-  const tokenData = (await tokenResp.json()) as { access_token?: string };
+  const tokenData = (await tokenResp.json().catch(() => ({}))) as { access_token?: string };
   const accessToken = tokenData.access_token;
+  if (!tokenResp.ok || !accessToken) {
+    console.error("Zoho token refresh failed", tokenResp.status, tokenData);
+    throwError("Could not send the verification email. Please try again shortly.", 502);
+  }
 
   const accountId = env.ZOHO_ACCOUNT_ID;
 
@@ -96,7 +107,12 @@ const sendEmailVarification = async (data: {
     }
   );
 
-  return await sendResp.json();
+  const sendData: unknown = await sendResp.json().catch(() => null);
+  if (!sendResp.ok) {
+    console.error("Zoho send failed", sendResp.status, sendData);
+    throwError("Could not send the verification email. Please try again shortly.", 502);
+  }
+  return sendData;
 };
 
 const verifyEmailToProceed = async (data: { identifier: string; otp: number }) => {
@@ -104,7 +120,8 @@ const verifyEmailToProceed = async (data: { identifier: string; otp: number }) =
   const record = verifyOtp(identifier, Number(otp));
   if (record) {
     const { name, password } = record;
-    if (!name || !password) throw new Error("No name or password found!");
+    if (!name || !password)
+      throwError("Your sign-up session expired. Please sign up again.", 400);
     const [user] = await db
       .insert(users)
       .values({ email: identifier, name, password })
@@ -128,7 +145,8 @@ const sendSmsProvider = async (data: {
   const existUser = await db.query.users.findFirst({
     where: eq(users.phone_number, phoneNumber),
   });
-  if (existUser) throw new Error("User already exist");
+  if (existUser)
+    throwError("An account with this phone number already exists. Please log in.", 409);
 
   const { hashedPassword } = await passwordHashing(password);
   const otp = generateOtp();
@@ -149,7 +167,12 @@ const sendSmsProvider = async (data: {
       message: `Your otp for uddoktahut is: ${otp}`,
     }),
   });
-  return await response.json();
+  const smsData: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    console.error("SMS send failed", response.status, smsData);
+    throwError("Could not send the verification SMS. Please try again shortly.", 502);
+  }
+  return smsData;
 };
 
 const verifySmsProvider = async (data: { identifier: string; otp: number }) => {
@@ -157,7 +180,8 @@ const verifySmsProvider = async (data: { identifier: string; otp: number }) => {
   const record = verifyOtp(identifier, Number(otp));
   if (record) {
     const { name, password } = record;
-    if (!name || !password) throw new Error("No name or password found!");
+    if (!name || !password)
+      throwError("Your sign-up session expired. Please sign up again.", 400);
     const [user] = await db
       .insert(users)
       .values({
@@ -184,7 +208,7 @@ const onboardedAccess = async (id: number) => {
     },
   });
 
-  if (!user) throw new Error("User not found");
+  assertFound(user, "User not found", 404);
 
   return {
     name: user.name,
@@ -205,10 +229,10 @@ async function validateUserAndRoles(
     tx.select().from(roles).where(inArray(roles.id, roleIds)),
   ]);
 
-  if (!validUser) throw new Error("User is invalid");
+  assertFound(validUser, "User is invalid", 400);
 
   if (validRoles.length !== roleIds.length)
-    throw new Error("Some roles are invalid");
+    throwError("Some roles are invalid", 400);
 
   return { validUser, validRoles };
 }
@@ -320,7 +344,17 @@ const assignRoleToUserAndCreateStore = async (data: {
   const { userId, roles: roleIds, storeName, storeAddress, storeType, country } =
     data;
   const storeSlug = slugifyStoreName(storeName);
-  if (!storeSlug) throw new Error("Invalid business name");
+  if (!storeSlug) throwError("Invalid business name", 400);
+  if (storeSlug.length > MAX_STORE_SLUG_LENGTH)
+    throwError(
+      `Store name is too long (max ${MAX_STORE_SLUG_LENGTH} characters)`,
+      400
+    );
+  if (isReservedStoreSlug(storeSlug))
+    throwError(
+      "This store name isn't available. Please choose another name.",
+      409
+    );
 
   const resolvedStoreUrl = buildStoreUrl(storeSlug);
 
@@ -330,7 +364,7 @@ const assignRoleToUserAndCreateStore = async (data: {
         where: eq(stores.store_name, storeSlug),
       });
       if (existStore)
-        throw new Error("This (business/store) name already exist");
+        throwError("This (business/store) name already exist", 409);
 
       const isAdmin = roleIds.includes(1);
       const onboarded = isAdmin;
@@ -378,8 +412,9 @@ const assignRoleToUserAndCreateStore = async (data: {
       return null;
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(message);
+    // Rethrow as-is so a statusCode set by throwError survives (a 4xx message
+    // reaches the seller instead of being masked as a 500 in production).
+    throw err;
   }
 };
 
