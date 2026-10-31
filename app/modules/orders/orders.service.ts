@@ -19,6 +19,11 @@ import {
   stores,
 } from "../../db/schema/index.ts";
 import { PRODUCT_STATUS } from "../../constants/productConstants.ts";
+import {
+  isValidPhoneForCountry,
+  normalizePhone,
+  phoneErrorForCountry,
+} from "../../constants/phone.ts";
 import type { Database } from "../../db/client.ts";
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -207,6 +212,11 @@ const createStoreOrder = async (
     throwError("Only cash on delivery is supported", 400);
   }
 
+  const customerPhone = normalizePhone(customer.phone);
+  if (!isValidPhoneForCountry(customerPhone, store.country)) {
+    throwError(phoneErrorForCountry(store.country), 400);
+  }
+
   const productIds = items.map((item) => item.productId);
   const uniqueProductIds = new Set(productIds);
   if (uniqueProductIds.size !== productIds.length) {
@@ -272,7 +282,7 @@ const createStoreOrder = async (
         store_id: store.id,
         order_number: generateOrderNumber(store.id),
         customer_name: customer.name,
-        customer_phone: customer.phone,
+        customer_phone: customerPhone,
         customer_address: customer.address,
         note: note ?? null,
         status: ORDER_STATUSES.PENDING,

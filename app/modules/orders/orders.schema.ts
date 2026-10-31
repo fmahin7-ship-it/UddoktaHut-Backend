@@ -7,10 +7,8 @@ import {
   REFUND_STATUSES,
   RETURN_STATUSES,
 } from "../../constants/orderConstants.ts";
-const bdPhoneSchema = z
-  .string()
-  .trim()
-  .regex(/^01[0-9]{9}$/, "Phone must be a valid 11-digit Bangladesh number");
+/** Shape only — country-specific phone rules run in createStoreOrder after the store is loaded. */
+const customerPhoneSchema = z.string().trim().min(8).max(20);
 
 const createOrderItemSchema = z.object({
   productId: z.coerce.number().int().positive(),
@@ -20,7 +18,7 @@ const createOrderItemSchema = z.object({
 export const createOrderSchema = z.object({
   customer: z.object({
     name: z.string().trim().min(1).max(255),
-    phone: bdPhoneSchema,
+    phone: customerPhoneSchema,
     address: z.string().trim().min(5).max(2000),
   }),
   items: z
