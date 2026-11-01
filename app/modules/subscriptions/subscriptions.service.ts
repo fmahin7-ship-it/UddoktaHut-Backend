@@ -66,6 +66,7 @@ const getSubscriptionStatus = async ({ userId }: { userId: number }) => {
     subscriptionStatus: subscription.status,
     endDate: subscription.end_date,
     cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
+    billingProvider: subscription.billing_provider,
   };
 
   return { user: userData };

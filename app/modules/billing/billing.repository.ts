@@ -14,6 +14,11 @@ const findPlanBySlug = async (slug: string) =>
 const findStoreById = async (storeId: number) =>
   db.query.stores.findFirst({ where: eq(stores.id, storeId) });
 
+const findSubscriptionByStripeId = async (stripeSubscriptionId: string) =>
+  db.query.subscriptions.findFirst({
+    where: eq(subscriptions.stripe_subscription_id, stripeSubscriptionId),
+  });
+
 const saveStripeCustomerId = async (
   subscriptionId: number,
   stripeCustomerId: string
@@ -50,6 +55,13 @@ const claimWebhookEvent = async (
   }
 };
 
+const markWebhookProcessed = async (row: { id: number }) => {
+  await db
+    .update(billingWebhookEvents)
+    .set({ processed_at: new Date(), error: null })
+    .where(eq(billingWebhookEvents.id, row.id));
+};
+
 const markWebhookError = async (row: { id: number }, error: string) => {
   await db
     .update(billingWebhookEvents)
@@ -80,6 +92,10 @@ class PermanentWebhookError extends Error {
   }
 }
 
+/**
+ * Activates (or refreshes) Pro from a claimed billing event row.
+ * Safe to call twice for the same row — the second call no-ops.
+ */
 const activateSubscription = async (
   row: { id: number },
   change: SubscriptionChange
@@ -124,12 +140,82 @@ const activateSubscription = async (
   });
 };
 
+/** Month 2+ renew — extend access and keep active. */
+const markSubscriptionRenewed = async (opts: {
+  stripeSubscriptionId: string;
+  periodEnd: Date;
+}) => {
+  const [updated] = await db
+    .update(subscriptions)
+    .set({
+      status: "active",
+      end_date: opts.periodEnd,
+      is_auto_renew: true,
+      cancel_at_period_end: false,
+    })
+    .where(eq(subscriptions.stripe_subscription_id, opts.stripeSubscriptionId))
+    .returning({ id: subscriptions.id });
+  return updated ?? null;
+};
+
+/** Card charge failed — keep end_date; access uses past_due + end_date grace. */
+const markSubscriptionPastDue = async (stripeSubscriptionId: string) => {
+  const [updated] = await db
+    .update(subscriptions)
+    .set({ status: "past_due", is_auto_renew: false })
+    .where(eq(subscriptions.stripe_subscription_id, stripeSubscriptionId))
+    .returning({ id: subscriptions.id });
+  return updated ?? null;
+};
+
+/** Sync cancel flag + status from Stripe subscription.updated. */
+const markSubscriptionCancelAtPeriodEnd = async (opts: {
+  stripeSubscriptionId: string;
+  cancelAtPeriodEnd: boolean;
+  periodEnd: Date | null;
+  status?: string | null;
+}) => {
+  const [updated] = await db
+    .update(subscriptions)
+    .set({
+      cancel_at_period_end: opts.cancelAtPeriodEnd,
+      is_auto_renew: !opts.cancelAtPeriodEnd,
+      ...(opts.periodEnd ? { end_date: opts.periodEnd } : {}),
+      ...(opts.status ? { status: opts.status } : {}),
+    })
+    .where(eq(subscriptions.stripe_subscription_id, opts.stripeSubscriptionId))
+    .returning({ id: subscriptions.id });
+  return updated ?? null;
+};
+
+/** Stripe subscription fully ended. */
+const markSubscriptionEnded = async (stripeSubscriptionId: string) => {
+  const [updated] = await db
+    .update(subscriptions)
+    .set({
+      status: "canceled",
+      end_date: new Date(),
+      is_auto_renew: false,
+      cancel_at_period_end: false,
+    })
+    .where(eq(subscriptions.stripe_subscription_id, stripeSubscriptionId))
+    .returning({ id: subscriptions.id });
+  return updated ?? null;
+};
+
 export {
   activateSubscription,
   claimWebhookEvent,
   findPlanBySlug,
   findStoreById,
+  findSubscriptionByStripeId,
+  markSubscriptionCancelAtPeriodEnd,
+  markSubscriptionEnded,
+  markSubscriptionPastDue,
+  markSubscriptionRenewed,
   markWebhookError,
   markWebhookPermanent,
+  markWebhookProcessed,
   saveStripeCustomerId,
 };
+export type { SubscriptionChange };

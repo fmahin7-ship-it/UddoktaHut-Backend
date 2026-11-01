@@ -8,4 +8,12 @@ const checkoutSchema = z.object({
   }),
 });
 
-export { checkoutSchema };
+const confirmCheckoutSchema = z.object({
+  sessionId: z
+    .string()
+    .trim()
+    .min(1, "sessionId is required")
+    .regex(/^cs_/, "sessionId must be a Stripe Checkout session id"),
+});
+
+export { checkoutSchema, confirmCheckoutSchema };

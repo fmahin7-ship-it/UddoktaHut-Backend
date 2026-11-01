@@ -26,6 +26,13 @@ const isSubscriptionActive = (
     );
   }
 
+  // Card failed but the paid period has not ended yet — keep access until end_date.
+  if (subscription.status === "past_due") {
+    return Boolean(
+      subscription.end_date && new Date(subscription.end_date) > now
+    );
+  }
+
   return false;
 };
 

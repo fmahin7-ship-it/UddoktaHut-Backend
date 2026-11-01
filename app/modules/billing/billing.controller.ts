@@ -3,7 +3,12 @@ import type Stripe from "stripe";
 import { env } from "../../config/env.ts";
 import { requireUser } from "../../lib/requireUser.ts";
 import type { AsyncRoute } from "../../types/http.ts";
-import { applyStripeEvent, createCheckoutSession } from "./billing.service.ts";
+import {
+  applyStripeEvent,
+  confirmCheckoutSession,
+  createBillingPortalSession,
+  createCheckoutSession,
+} from "./billing.service.ts";
 import { getStripe } from "./providers/stripe.ts";
 
 const createCheckout: AsyncRoute = async (req, res, next) => {
@@ -14,6 +19,30 @@ const createCheckout: AsyncRoute = async (req, res, next) => {
       user,
       planSlug: body.plan,
     });
+    res.status(200).json({ url });
+  } catch (err: unknown) {
+    next(err);
+  }
+};
+
+const confirmCheckout: AsyncRoute = async (req, res, next) => {
+  try {
+    const user = requireUser(req);
+    const body = req.body as { sessionId: string };
+    const result = await confirmCheckoutSession({
+      user,
+      sessionId: body.sessionId,
+    });
+    res.status(200).json(result);
+  } catch (err: unknown) {
+    next(err);
+  }
+};
+
+const createPortal: AsyncRoute = async (req, res, next) => {
+  try {
+    const user = requireUser(req);
+    const { url } = await createBillingPortalSession(user);
     res.status(200).json({ url });
   } catch (err: unknown) {
     next(err);
@@ -56,18 +85,7 @@ const stripeWebhook = async (
     await applyStripeEvent({
       id: event.id,
       type: event.type,
-      data: event.data as {
-        object?: {
-          id?: string | null;
-          mode?: string | null;
-          status?: string | null;
-          payment_status?: string | null;
-          subscription?: unknown;
-          customer?: unknown;
-          client_reference_id?: string | null;
-          metadata?: Record<string, string> | null;
-        };
-      },
+      data: event.data as unknown as { object?: Record<string, unknown> },
     });
     res.status(200).json({ received: true });
   } catch (err: unknown) {
@@ -81,4 +99,4 @@ const stripeWebhook = async (
   }
 };
 
-export { createCheckout, stripeWebhook };
+export { confirmCheckout, createCheckout, createPortal, stripeWebhook };
