@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mock, test } from "node:test";
 import bcrypt from "bcrypt";
 import { eq, inArray, like } from "drizzle-orm";
+import type Stripe from "stripe";
 import { env } from "../app/config/env.ts";
 import { db, pool } from "../app/db/client.ts";
 import {
@@ -62,12 +63,22 @@ mock.module("../app/modules/billing/providers/stripe.ts", {
   },
 });
 
-const {
-  applyStripeEvent,
-  confirmCheckoutSession,
-  createBillingPortalSession,
-  createCheckoutSession,
-} = await import("../app/modules/billing/billing.service.ts");
+const { createCheckoutSession, confirmCheckoutSession } = await import(
+  "../app/modules/billing/checkout.service.ts"
+);
+const { createBillingPortalSession } = await import(
+  "../app/modules/billing/portal.service.ts"
+);
+const { applyStripeEvent } = await import(
+  "../app/modules/billing/webhooks.service.ts"
+);
+
+/** Test doubles are partial Stripe objects; cast at the webhook boundary. */
+const asStripeEvent = (event: {
+  id: string;
+  type: string;
+  data: { object: Record<string, unknown> };
+}) => event as unknown as Stripe.Event;
 
 const password = bcrypt.hashSync("Handcheck123", 10);
 
@@ -193,26 +204,28 @@ test("a paid checkout webhook switches the store to Pro", async () => {
   const owner = await createOwner({ country: "AU", planSlug: "trial" });
   const eventId = `evt_test_${owner.store.id}_${Date.now()}`;
   try {
-    await applyStripeEvent({
-      id: eventId,
-      type: "checkout.session.completed",
-      data: {
-        object: {
-          id: `cs_test_${owner.store.id}`,
-          mode: "subscription",
-          status: "complete",
-          payment_status: "paid",
-          client_reference_id: String(owner.store.id),
-          customer: "cus_test_handcheck",
-          subscription: "sub_test_handcheck",
-          metadata: {
-            store_id: String(owner.store.id),
-            user_id: String(owner.user.id),
-            plan_slug: "pro",
+    await applyStripeEvent(
+      asStripeEvent({
+        id: eventId,
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: `cs_test_${owner.store.id}`,
+            mode: "subscription",
+            status: "complete",
+            payment_status: "paid",
+            client_reference_id: String(owner.store.id),
+            customer: "cus_test_handcheck",
+            subscription: "sub_test_handcheck",
+            metadata: {
+              store_id: String(owner.store.id),
+              user_id: String(owner.user.id),
+              plan_slug: "pro",
+            },
           },
         },
-      },
-    });
+      })
+    );
     const updated = await db.query.subscriptions.findFirst({
       where: eq(subscriptions.store_id, owner.store.id),
     });
@@ -225,11 +238,13 @@ test("a paid checkout webhook switches the store to Pro", async () => {
     assert.equal(updated!.stripe_subscription_id, "sub_test_handcheck");
     assert.ok(updated!.end_date! > new Date());
 
-    await applyStripeEvent({
-      id: eventId,
-      type: "checkout.session.completed",
-      data: { object: {} },
-    });
+    await applyStripeEvent(
+      asStripeEvent({
+        id: eventId,
+        type: "checkout.session.completed",
+        data: { object: {} },
+      })
+    );
     const again = await db.query.subscriptions.findFirst({
       where: eq(subscriptions.store_id, owner.store.id),
     });
@@ -288,11 +303,13 @@ test("invoice.paid extends the subscription period", async () => {
   });
   const eventId = `evt_invoice_paid_${owner.store.id}`;
   try {
-    await applyStripeEvent({
-      id: eventId,
-      type: "invoice.paid",
-      data: { object: { subscription: "sub_renew" } },
-    });
+    await applyStripeEvent(
+      asStripeEvent({
+        id: eventId,
+        type: "invoice.paid",
+        data: { object: { subscription: "sub_renew" } },
+      })
+    );
     const updated = await db.query.subscriptions.findFirst({
       where: eq(subscriptions.store_id, owner.store.id),
     });
@@ -321,18 +338,20 @@ test("invoice.paid reads subscription id from newer Stripe parent path", async (
   });
   const eventId = `evt_invoice_nested_${owner.store.id}`;
   try {
-    await applyStripeEvent({
-      id: eventId,
-      type: "invoice.paid",
-      data: {
-        object: {
-          id: "in_nested",
-          parent: {
-            subscription_details: { subscription: "sub_nested" },
+    await applyStripeEvent(
+      asStripeEvent({
+        id: eventId,
+        type: "invoice.paid",
+        data: {
+          object: {
+            id: "in_nested",
+            parent: {
+              subscription_details: { subscription: "sub_nested" },
+            },
           },
         },
-      },
-    });
+      })
+    );
     const updated = await db.query.subscriptions.findFirst({
       where: eq(subscriptions.store_id, owner.store.id),
     });
@@ -367,11 +386,13 @@ test("invoice.payment_failed marks the subscription past_due", async () => {
   });
   const eventId = `evt_invoice_fail_${owner.store.id}`;
   try {
-    await applyStripeEvent({
-      id: eventId,
-      type: "invoice.payment_failed",
-      data: { object: { subscription: "sub_fail" } },
-    });
+    await applyStripeEvent(
+      asStripeEvent({
+        id: eventId,
+        type: "invoice.payment_failed",
+        data: { object: { subscription: "sub_fail" } },
+      })
+    );
     const updated = await db.query.subscriptions.findFirst({
       where: eq(subscriptions.store_id, owner.store.id),
     });
@@ -397,19 +418,21 @@ test("customer.subscription.updated syncs cancel flag and Stripe status", async 
   });
   const eventId = `evt_sub_updated_${owner.store.id}`;
   try {
-    await applyStripeEvent({
-      id: eventId,
-      type: "customer.subscription.updated",
-      data: {
-        object: {
-          id: "sub_cancel",
-          status: "past_due",
-          cancel_at_period_end: true,
-          current_period_end: periodEndUnix,
-          items: { data: [{ price: { id: env.STRIPE_PRICE_PRO } }] },
+    await applyStripeEvent(
+      asStripeEvent({
+        id: eventId,
+        type: "customer.subscription.updated",
+        data: {
+          object: {
+            id: "sub_cancel",
+            status: "past_due",
+            cancel_at_period_end: true,
+            current_period_end: periodEndUnix,
+            items: { data: [{ price: { id: env.STRIPE_PRICE_PRO } }] },
+          },
         },
-      },
-    });
+      })
+    );
     const updated = await db.query.subscriptions.findFirst({
       where: eq(subscriptions.store_id, owner.store.id),
     });
@@ -436,11 +459,13 @@ test("customer.subscription.deleted ends local access", async () => {
   });
   const eventId = `evt_sub_deleted_${owner.store.id}`;
   try {
-    await applyStripeEvent({
-      id: eventId,
-      type: "customer.subscription.deleted",
-      data: { object: { id: "sub_del" } },
-    });
+    await applyStripeEvent(
+      asStripeEvent({
+        id: eventId,
+        type: "customer.subscription.deleted",
+        data: { object: { id: "sub_del" } },
+      })
+    );
     const updated = await db.query.subscriptions.findFirst({
       where: eq(subscriptions.store_id, owner.store.id),
     });

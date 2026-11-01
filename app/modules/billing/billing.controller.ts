@@ -4,12 +4,12 @@ import { env } from "../../config/env.ts";
 import { requireUser } from "../../lib/requireUser.ts";
 import type { AsyncRoute } from "../../types/http.ts";
 import {
-  applyStripeEvent,
   confirmCheckoutSession,
-  createBillingPortalSession,
   createCheckoutSession,
-} from "./billing.service.ts";
+} from "./checkout.service.ts";
+import { createBillingPortalSession } from "./portal.service.ts";
 import { getStripe } from "./providers/stripe.ts";
+import { applyStripeEvent } from "./webhooks.service.ts";
 
 const createCheckout: AsyncRoute = async (req, res, next) => {
   try {
@@ -82,11 +82,7 @@ const stripeWebhook = async (
   }
 
   try {
-    await applyStripeEvent({
-      id: event.id,
-      type: event.type,
-      data: event.data as unknown as { object?: Record<string, unknown> },
-    });
+    await applyStripeEvent(event);
     res.status(200).json({ received: true });
   } catch (err: unknown) {
     console.error(
