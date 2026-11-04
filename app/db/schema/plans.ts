@@ -51,4 +51,9 @@ export const subscriptions = pgTable("subscriptions", {
   stripe_subscription_id: varchar("stripe_subscription_id"),
   billing_provider: varchar("billing_provider"),
   cancel_at_period_end: boolean("cancel_at_period_end").notNull().default(false),
+  /** Scheduled downgrade (or other delayed plan change) — applied at pending_plan_change_at. */
+  pending_plan_id: integer("pending_plan_id").references(() => plans.id),
+  pending_plan_change_at: timestamp("pending_plan_change_at", {
+    withTimezone: true,
+  }),
 });

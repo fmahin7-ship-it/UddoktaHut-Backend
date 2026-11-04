@@ -62,6 +62,7 @@ const envSchema = z
     AI_INTENT_AUTO_RUN: z.string().optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_PRICE_PRO: z.string().optional(),
+    STRIPE_PRICE_BUSINESS: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
     APP_PUBLIC_URL: z.string().optional(),
   })
@@ -161,6 +162,7 @@ export const env = {
   AI_INTENT_AUTO_RUN: boolFromEnv(raw.AI_INTENT_AUTO_RUN, true),
   STRIPE_SECRET_KEY: raw.STRIPE_SECRET_KEY || "",
   STRIPE_PRICE_PRO: raw.STRIPE_PRICE_PRO || "",
+  STRIPE_PRICE_BUSINESS: raw.STRIPE_PRICE_BUSINESS || "",
   STRIPE_WEBHOOK_SECRET: raw.STRIPE_WEBHOOK_SECRET || "",
   APP_PUBLIC_URL:
     raw.APP_PUBLIC_URL ||

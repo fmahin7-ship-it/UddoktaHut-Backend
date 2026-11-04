@@ -21,9 +21,15 @@ const periodEndUnix = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30;
 
 const fakeSubscription = {
   id: "sub_test_handcheck",
+  status: "active" as string,
   cancel_at_period_end: false,
   current_period_end: periodEndUnix,
-  items: { data: [{ price: { id: env.STRIPE_PRICE_PRO } }] },
+  schedule: null as string | null,
+  pending_update: null as unknown,
+  metadata: {} as Record<string, string>,
+  items: {
+    data: [{ id: "si_test", price: { id: env.STRIPE_PRICE_PRO } }],
+  },
 };
 
 const fakeCheckoutSession = {
@@ -37,11 +43,58 @@ const fakeCheckoutSession = {
   metadata: {} as Record<string, string>,
 };
 
+let upgradeShouldDecline = false;
+
 mock.module("../app/modules/billing/providers/stripe.ts", {
   namedExports: {
     getStripe: () => ({
       subscriptions: {
         retrieve: async (id: string) => ({ ...fakeSubscription, id }),
+        update: async (
+          id: string,
+          params: {
+            items?: Array<{ price?: string }>;
+            metadata?: Record<string, string>;
+          }
+        ) => {
+          if (upgradeShouldDecline) {
+            return {
+              ...fakeSubscription,
+              id,
+              pending_update: { expires_at: periodEndUnix },
+            };
+          }
+          const newPrice = params.items?.[0]?.price ?? env.STRIPE_PRICE_PRO;
+          fakeSubscription.items.data[0]!.price.id = newPrice;
+          fakeSubscription.metadata = {
+            ...fakeSubscription.metadata,
+            ...(params.metadata ?? {}),
+          };
+          return {
+            ...fakeSubscription,
+            id,
+            status: "active",
+            pending_update: null,
+            items: {
+              data: [{ id: "si_test", price: { id: newPrice } }],
+            },
+          };
+        },
+      },
+      subscriptionSchedules: {
+        create: async () => ({
+          id: "sub_sched_test",
+          phases: [{ start_date: periodEndUnix - 86400 * 20 }],
+        }),
+        retrieve: async (id: string) => ({
+          id,
+          phases: [{ start_date: periodEndUnix - 86400 * 20 }],
+        }),
+        update: async (id: string) => ({ id }),
+        release: async (id: string) => {
+          fakeSubscription.schedule = null;
+          return { id };
+        },
       },
       checkout: {
         sessions: {
@@ -50,7 +103,13 @@ mock.module("../app/modules/billing/providers/stripe.ts", {
             client_reference_id: fakeCheckoutSession.client_reference_id,
             metadata: { ...fakeCheckoutSession.metadata },
           }),
+          create: async () => ({
+            url: "https://checkout.stripe.com/test",
+          }),
         },
+      },
+      customers: {
+        create: async () => ({ id: "cus_new_test" }),
       },
       billingPortal: {
         sessions: {
@@ -68,6 +127,9 @@ const { createCheckoutSession, confirmCheckoutSession } = await import(
 );
 const { createBillingPortalSession } = await import(
   "../app/modules/billing/portal.service.ts"
+);
+const { changePlan, cancelScheduledPlanChange } = await import(
+  "../app/modules/billing/plan-change.service.ts"
 );
 const { applyStripeEvent } = await import(
   "../app/modules/billing/webhooks.service.ts"
@@ -177,7 +239,7 @@ test("a Bangladesh store cannot open card checkout", async () => {
   }
 });
 
-test("an Australian store already renewing Pro is not sent to checkout again", async () => {
+test("an Australian store with an active Stripe sub cannot open a second checkout", async () => {
   const owner = await createOwner({
     country: "AU",
     planSlug: "pro",
@@ -191,9 +253,9 @@ test("an Australian store already renewing Pro is not sent to checkout again", a
   });
   try {
     await assert.rejects(
-      () => createCheckoutSession({ user: owner.user, planSlug: "pro" }),
+      () => createCheckoutSession({ user: owner.user, planSlug: "business" }),
       (err: Error & { code?: string; statusCode?: number }) =>
-        err.code === "ALREADY_SUBSCRIBED" && err.statusCode === 409
+        err.code === "USE_CHANGE_PLAN" && err.statusCode === 409
     );
   } finally {
     await removeOwner(owner);
@@ -493,6 +555,173 @@ test("billing portal opens for a Stripe customer", async () => {
     const { url } = await createBillingPortalSession(owner.user);
     assert.match(url, /billing\.stripe\.com/);
   } finally {
+    await removeOwner(owner);
+  }
+});
+
+test("trial can open Business checkout in Australia", async () => {
+  const owner = await createOwner({ country: "AU", planSlug: "trial" });
+  try {
+    const { url } = await createCheckoutSession({
+      user: owner.user,
+      planSlug: "business",
+    });
+    assert.match(url, /checkout\.stripe\.com/);
+  } finally {
+    await removeOwner(owner);
+  }
+});
+
+test("upgrade Pro to Business succeeds and syncs plan", async () => {
+  upgradeShouldDecline = false;
+  fakeSubscription.items.data[0]!.price.id = env.STRIPE_PRICE_PRO;
+  const owner = await createOwner({
+    country: "AU",
+    planSlug: "pro",
+    subscriptionFields: {
+      status: "active",
+      billing_provider: "stripe",
+      stripe_customer_id: "cus_up",
+      stripe_subscription_id: "sub_up",
+      end_date: new Date(Date.now() + 10 * 86400000),
+    },
+  });
+  try {
+    const result = await changePlan({
+      user: owner.user,
+      planSlug: "business",
+    });
+    assert.equal(result.mode, "upgraded");
+    const business = await db.query.plans.findFirst({
+      where: eq(plans.slug, "business"),
+    });
+    const updated = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.store_id, owner.store.id),
+    });
+    assert.equal(updated!.plan_id, business!.id);
+  } finally {
+    await removeOwner(owner);
+  }
+});
+
+test("declined upgrade leaves the store on Pro", async () => {
+  upgradeShouldDecline = true;
+  fakeSubscription.items.data[0]!.price.id = env.STRIPE_PRICE_PRO;
+  const owner = await createOwner({
+    country: "AU",
+    planSlug: "pro",
+    subscriptionFields: {
+      status: "active",
+      billing_provider: "stripe",
+      stripe_customer_id: "cus_decline",
+      stripe_subscription_id: "sub_decline",
+      end_date: new Date(Date.now() + 10 * 86400000),
+    },
+  });
+  try {
+    await assert.rejects(
+      () => changePlan({ user: owner.user, planSlug: "business" }),
+      (err: Error & { code?: string; statusCode?: number }) =>
+        err.code === "CARD_DECLINED" && err.statusCode === 402
+    );
+    const pro = await db.query.plans.findFirst({
+      where: eq(plans.slug, "pro"),
+    });
+    const updated = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.store_id, owner.store.id),
+    });
+    assert.equal(updated!.plan_id, pro!.id);
+  } finally {
+    upgradeShouldDecline = false;
+    await removeOwner(owner);
+  }
+});
+
+test("downgrade schedules at period end and can be cancelled", async () => {
+  upgradeShouldDecline = false;
+  fakeSubscription.items.data[0]!.price.id = env.STRIPE_PRICE_BUSINESS;
+  fakeSubscription.schedule = null;
+  const owner = await createOwner({
+    country: "AU",
+    planSlug: "business",
+    subscriptionFields: {
+      status: "active",
+      billing_provider: "stripe",
+      stripe_customer_id: "cus_down",
+      stripe_subscription_id: "sub_down",
+      end_date: new Date(periodEndUnix * 1000),
+    },
+  });
+  try {
+    const scheduled = await changePlan({
+      user: owner.user,
+      planSlug: "pro",
+    });
+    assert.equal(scheduled.mode, "scheduled");
+    const pro = await db.query.plans.findFirst({
+      where: eq(plans.slug, "pro"),
+    });
+    const business = await db.query.plans.findFirst({
+      where: eq(plans.slug, "business"),
+    });
+    let updated = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.store_id, owner.store.id),
+    });
+    assert.equal(updated!.plan_id, business!.id);
+    assert.equal(updated!.pending_plan_id, pro!.id);
+    assert.ok(updated!.pending_plan_change_at);
+
+    await cancelScheduledPlanChange(owner.user);
+    updated = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.store_id, owner.store.id),
+    });
+    assert.equal(updated!.pending_plan_id, null);
+    assert.equal(updated!.plan_id, business!.id);
+  } finally {
+    await removeOwner(owner);
+  }
+});
+
+test("subscription.updated syncs plan from Stripe price", async () => {
+  const owner = await createOwner({
+    country: "AU",
+    planSlug: "pro",
+    subscriptionFields: {
+      status: "active",
+      billing_provider: "stripe",
+      stripe_customer_id: "cus_sync",
+      stripe_subscription_id: "sub_sync",
+      end_date: new Date(Date.now() + 10 * 86400000),
+    },
+  });
+  const eventId = `evt_plan_sync_${owner.store.id}`;
+  try {
+    await applyStripeEvent(
+      asStripeEvent({
+        id: eventId,
+        type: "customer.subscription.updated",
+        data: {
+          object: {
+            id: "sub_sync",
+            status: "active",
+            cancel_at_period_end: false,
+            current_period_end: periodEndUnix,
+            items: {
+              data: [{ price: { id: env.STRIPE_PRICE_BUSINESS } }],
+            },
+          },
+        },
+      })
+    );
+    const business = await db.query.plans.findFirst({
+      where: eq(plans.slug, "business"),
+    });
+    const updated = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.store_id, owner.store.id),
+    });
+    assert.equal(updated!.plan_id, business!.id);
+  } finally {
+    await wipeEvents(eventId);
     await removeOwner(owner);
   }
 });

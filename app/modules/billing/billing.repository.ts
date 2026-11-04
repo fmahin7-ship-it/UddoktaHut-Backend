@@ -168,12 +168,14 @@ const markSubscriptionPastDue = async (stripeSubscriptionId: string) => {
   return updated ?? null;
 };
 
-/** Sync cancel flag + status from Stripe subscription.updated. */
-const markSubscriptionCancelAtPeriodEnd = async (opts: {
+/** Sync cancel flag, status, and optional plan from Stripe subscription.updated. */
+const syncSubscriptionFromStripe = async (opts: {
   stripeSubscriptionId: string;
   cancelAtPeriodEnd: boolean;
   periodEnd: Date | null;
   status?: string | null;
+  planId?: number | null;
+  clearPendingPlan?: boolean;
 }) => {
   const [updated] = await db
     .update(subscriptions)
@@ -182,6 +184,57 @@ const markSubscriptionCancelAtPeriodEnd = async (opts: {
       is_auto_renew: !opts.cancelAtPeriodEnd,
       ...(opts.periodEnd ? { end_date: opts.periodEnd } : {}),
       ...(opts.status ? { status: opts.status } : {}),
+      ...(opts.planId ? { plan_id: opts.planId } : {}),
+      ...(opts.clearPendingPlan
+        ? { pending_plan_id: null, pending_plan_change_at: null }
+        : {}),
+    })
+    .where(eq(subscriptions.stripe_subscription_id, opts.stripeSubscriptionId))
+    .returning({ id: subscriptions.id });
+  return updated ?? null;
+};
+
+const setPendingPlanChange = async (opts: {
+  stripeSubscriptionId: string;
+  pendingPlanId: number;
+  changeAt: Date;
+}) => {
+  const [updated] = await db
+    .update(subscriptions)
+    .set({
+      pending_plan_id: opts.pendingPlanId,
+      pending_plan_change_at: opts.changeAt,
+    })
+    .where(eq(subscriptions.stripe_subscription_id, opts.stripeSubscriptionId))
+    .returning({ id: subscriptions.id });
+  return updated ?? null;
+};
+
+const clearPendingPlanChange = async (stripeSubscriptionId: string) => {
+  const [updated] = await db
+    .update(subscriptions)
+    .set({ pending_plan_id: null, pending_plan_change_at: null })
+    .where(eq(subscriptions.stripe_subscription_id, stripeSubscriptionId))
+    .returning({ id: subscriptions.id });
+  return updated ?? null;
+};
+
+const applyPlanImmediately = async (opts: {
+  stripeSubscriptionId: string;
+  planId: number;
+  periodEnd: Date | null;
+  status: string;
+}) => {
+  const [updated] = await db
+    .update(subscriptions)
+    .set({
+      plan_id: opts.planId,
+      status: opts.status,
+      pending_plan_id: null,
+      pending_plan_change_at: null,
+      ...(opts.periodEnd ? { end_date: opts.periodEnd } : {}),
+      is_auto_renew: true,
+      cancel_at_period_end: false,
     })
     .where(eq(subscriptions.stripe_subscription_id, opts.stripeSubscriptionId))
     .returning({ id: subscriptions.id });
@@ -205,17 +258,20 @@ const markSubscriptionEnded = async (stripeSubscriptionId: string) => {
 
 export {
   activateSubscription,
+  applyPlanImmediately,
   claimWebhookEvent,
+  clearPendingPlanChange,
   findPlanBySlug,
   findStoreById,
   findSubscriptionByStripeId,
-  markSubscriptionCancelAtPeriodEnd,
   markSubscriptionEnded,
+  syncSubscriptionFromStripe,
   markSubscriptionPastDue,
   markSubscriptionRenewed,
   markWebhookError,
   markWebhookPermanent,
   markWebhookProcessed,
   saveStripeCustomerId,
+  setPendingPlanChange,
 };
 export type { SubscriptionChange };

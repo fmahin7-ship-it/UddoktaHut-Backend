@@ -1,16 +1,16 @@
 import type Stripe from "stripe";
 import { env } from "../../config/env.ts";
-import { PLAN_SLUGS, SUBSCRIPTION_ERROR_CODES } from "../../constants/plans.ts";
-import { marketFromCountry } from "../../constants/markets.ts";
 import { createAppError } from "../../lib/appError.ts";
 import type { AuthUser } from "../../types/express.d.ts";
 import { loadOwnerStoreContext } from "../subscriptions/ownerContext.ts";
 import {
   PermanentBillingError,
   isPermanentBillingError,
-  isStripeSdkError,
+  rethrowAsBillingError,
   stripeNotConfiguredError,
+  subscriptionRequiredError,
 } from "./billing.errors.ts";
+import { configuredPriceId, priceIdForPlan } from "./billing.prices.ts";
 import {
   activateSubscription,
   claimWebhookEvent,
@@ -27,51 +27,25 @@ import {
   subscriptionPriceId,
 } from "./providers/stripe-mappers.ts";
 
-const checkoutUnavailable = (message: string) =>
-  createAppError(message, 400, "CHECKOUT_UNAVAILABLE");
-
-/** Stripe price configured for a plan. Empty until that plan is billed by card. */
-const configuredPriceId = (planSlug: string): string => {
-  if (planSlug === PLAN_SLUGS.PRO) return env.STRIPE_PRICE_PRO;
-  return "";
-};
-
-/** Price for this plan in the store's market. Only Pro in Australia is configured. */
-const priceIdForPlan = (planSlug: string, country: string): string => {
-  const market = marketFromCountry(country);
-  if (planSlug !== PLAN_SLUGS.PRO || market !== "AU") {
-    throw checkoutUnavailable(
-      "Card checkout is only available for the Australian Pro plan right now."
-    );
-  }
-  if (!env.STRIPE_PRICE_PRO.startsWith("price_")) {
-    throw stripeNotConfiguredError();
-  }
-  return env.STRIPE_PRICE_PRO;
-};
-
-const assertNotAlreadySubscribed = (
-  subscription: {
-    billing_provider: string | null;
-    stripe_subscription_id: string | null;
-    status: string | null;
-    cancel_at_period_end: boolean;
-  },
-  plan: { slug: string } | null | undefined,
-  planSlug: string
-) => {
-  const renewing =
-    plan?.slug === planSlug &&
+/**
+ * Active Stripe billing already exists — must use change-plan, not Checkout
+ * (Checkout would create a second subscription and double-charge).
+ */
+const assertNoActiveStripeSubscription = (subscription: {
+  billing_provider: string | null;
+  stripe_subscription_id: string | null;
+  status: string | null;
+}) => {
+  const activeStripe =
     subscription.billing_provider === "stripe" &&
-    subscription.stripe_subscription_id &&
-    subscription.status === "active" &&
-    !subscription.cancel_at_period_end;
+    Boolean(subscription.stripe_subscription_id) &&
+    (subscription.status === "active" || subscription.status === "past_due");
 
-  if (renewing) {
+  if (activeStripe) {
     throw createAppError(
-      "This store is already on that plan.",
+      "This store already has a card subscription. Use change plan to switch between Pro and Business.",
       409,
-      "ALREADY_SUBSCRIBED"
+      "USE_CHANGE_PLAN"
     );
   }
 };
@@ -106,15 +80,22 @@ const openCheckoutSession = async (user: AuthUser, planSlug: string) => {
   if (!env.STRIPE_SECRET_KEY) throw stripeNotConfiguredError();
 
   const { store, subscription, plan } = await loadOwnerStoreContext(user.id);
-  if (!subscription) {
+  if (!subscription) throw subscriptionRequiredError();
+
+  assertNoActiveStripeSubscription(subscription);
+
+  if (
+    plan?.slug === planSlug &&
+    subscription.status === "active" &&
+    subscription.billing_provider === "stripe"
+  ) {
     throw createAppError(
-      "No subscription found. Please subscribe to continue.",
-      403,
-      SUBSCRIPTION_ERROR_CODES.SUBSCRIPTION_REQUIRED
+      "This store is already on that plan.",
+      409,
+      "ALREADY_SUBSCRIBED"
     );
   }
 
-  assertNotAlreadySubscribed(subscription, plan, planSlug);
   const priceId = priceIdForPlan(planSlug, store.country);
   const stripe = getStripe();
   const customerId = await ensureStripeCustomer(stripe, {
@@ -159,6 +140,7 @@ const openCheckoutSession = async (user: AuthUser, planSlug: string) => {
 /**
  * Opens Stripe Checkout for the requested plan. Does not change the store's plan.
  * The plan changes when the webhook or confirmCheckoutSession succeeds.
+ * Only for first card subscription — not for Pro ↔ Business switches.
  */
 const createCheckoutSession = async ({
   user,
@@ -170,11 +152,10 @@ const createCheckoutSession = async ({
   try {
     return await openCheckoutSession(user, planSlug);
   } catch (err) {
-    if (!isStripeSdkError(err)) throw err;
-    console.error("Stripe checkout failed", err.type, err.code, err.message);
-    throw createAppError(
+    return rethrowAsBillingError(
+      err,
+      "Stripe checkout failed",
       "Could not start checkout. Please try again.",
-      502,
       "CHECKOUT_FAILED"
     );
   }

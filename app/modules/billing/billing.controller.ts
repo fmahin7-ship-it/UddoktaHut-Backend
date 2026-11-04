@@ -7,6 +7,10 @@ import {
   confirmCheckoutSession,
   createCheckoutSession,
 } from "./checkout.service.ts";
+import {
+  cancelScheduledPlanChange,
+  changePlan,
+} from "./plan-change.service.ts";
 import { createBillingPortalSession } from "./portal.service.ts";
 import { getStripe } from "./providers/stripe.ts";
 import { applyStripeEvent } from "./webhooks.service.ts";
@@ -44,6 +48,27 @@ const createPortal: AsyncRoute = async (req, res, next) => {
     const user = requireUser(req);
     const { url } = await createBillingPortalSession(user);
     res.status(200).json({ url });
+  } catch (err: unknown) {
+    next(err);
+  }
+};
+
+const changeSubscriptionPlan: AsyncRoute = async (req, res, next) => {
+  try {
+    const user = requireUser(req);
+    const body = req.body as { plan: string };
+    const result = await changePlan({ user, planSlug: body.plan });
+    res.status(200).json(result);
+  } catch (err: unknown) {
+    next(err);
+  }
+};
+
+const cancelPlanChange: AsyncRoute = async (req, res, next) => {
+  try {
+    const user = requireUser(req);
+    const result = await cancelScheduledPlanChange(user);
+    res.status(200).json(result);
   } catch (err: unknown) {
     next(err);
   }
@@ -95,4 +120,11 @@ const stripeWebhook = async (
   }
 };
 
-export { confirmCheckout, createCheckout, createPortal, stripeWebhook };
+export {
+  cancelPlanChange,
+  changeSubscriptionPlan,
+  confirmCheckout,
+  createCheckout,
+  createPortal,
+  stripeWebhook,
+};

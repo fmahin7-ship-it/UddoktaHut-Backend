@@ -1,12 +1,14 @@
 import type Stripe from "stripe";
 import { PermanentBillingError, isPermanentBillingError } from "./billing.errors.ts";
 import { readPaidCheckout } from "./checkout.service.ts";
+import { planSlugFromPriceId } from "./billing.prices.ts";
 import {
   activateSubscription,
   claimWebhookEvent,
+  findPlanBySlug,
   findSubscriptionByStripeId,
-  markSubscriptionCancelAtPeriodEnd,
   markSubscriptionEnded,
+  syncSubscriptionFromStripe,
   markSubscriptionPastDue,
   markSubscriptionRenewed,
   markWebhookError,
@@ -22,6 +24,7 @@ import {
   SUBSCRIPTION_UPDATED,
   invoiceSubscriptionId,
   subscriptionPeriodEnd,
+  subscriptionPriceId,
   webhookPayloadSummary,
 } from "./providers/stripe-mappers.ts";
 
@@ -98,11 +101,23 @@ const handleSubscriptionUpdated = async (
   await runClaimedHandler(row, async () => {
     const existing = await findSubscriptionByStripeId(stripeSubscription.id);
     if (!existing) return;
-    await markSubscriptionCancelAtPeriodEnd({
+
+    const priceId = subscriptionPriceId(stripeSubscription);
+    const slug = planSlugFromPriceId(priceId);
+    const plan = slug ? await findPlanBySlug(slug) : null;
+    const clearPendingPlan = Boolean(
+      plan &&
+        existing.pending_plan_id &&
+        existing.pending_plan_id === plan.id
+    );
+
+    await syncSubscriptionFromStripe({
       stripeSubscriptionId: stripeSubscription.id,
       cancelAtPeriodEnd: Boolean(stripeSubscription.cancel_at_period_end),
       periodEnd: subscriptionPeriodEnd(stripeSubscription),
       status: stripeSubscription.status,
+      planId: plan?.id ?? null,
+      clearPendingPlan,
     });
   });
 };

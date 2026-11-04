@@ -41,7 +41,10 @@ export const storesRelations = relations(stores, ({ one, many }) => ({
 }));
 
 export const plansRelations = relations(plans, ({ many }) => ({
-  subscriptions: many(subscriptions),
+  subscriptions: many(subscriptions, { relationName: "subscriptionPlan" }),
+  pendingSubscriptions: many(subscriptions, {
+    relationName: "subscriptionPendingPlan",
+  }),
   prices: many(planPrices),
 }));
 
@@ -54,7 +57,16 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
     fields: [subscriptions.store_id],
     references: [stores.id],
   }),
-  plan: one(plans, { fields: [subscriptions.plan_id], references: [plans.id] }),
+  plan: one(plans, {
+    fields: [subscriptions.plan_id],
+    references: [plans.id],
+    relationName: "subscriptionPlan",
+  }),
+  pendingPlan: one(plans, {
+    fields: [subscriptions.pending_plan_id],
+    references: [plans.id],
+    relationName: "subscriptionPendingPlan",
+  }),
 }));
 
 export const productsRelations = relations(products, ({ one }) => ({

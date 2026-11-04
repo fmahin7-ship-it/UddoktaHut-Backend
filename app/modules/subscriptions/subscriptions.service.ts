@@ -14,7 +14,7 @@ const getSubscriptionStatus = async ({ userId }: { userId: number }) => {
       roleAssignments: { with: { role: true } },
       store: {
         with: {
-          subscription: { with: { plan: true } },
+          subscription: { with: { plan: true, pendingPlan: true } },
         },
       },
     },
@@ -67,6 +67,8 @@ const getSubscriptionStatus = async ({ userId }: { userId: number }) => {
     endDate: subscription.end_date,
     cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     billingProvider: subscription.billing_provider,
+    pendingPlanSlug: subscription.pendingPlan?.slug ?? null,
+    pendingPlanChangeAt: subscription.pending_plan_change_at ?? null,
   };
 
   return { user: userData };

@@ -1,4 +1,5 @@
 import { createAppError } from "../../lib/appError.ts";
+import { SUBSCRIPTION_ERROR_CODES } from "../../constants/plans.ts";
 
 /** Permanent webhook/checkout failure — mark the event done, do not retry. */
 class PermanentBillingError extends Error {
@@ -34,10 +35,40 @@ const stripeNotConfiguredError = () =>
     "STRIPE_NOT_CONFIGURED"
   );
 
+const subscriptionRequiredError = () =>
+  createAppError(
+    "No subscription found. Please subscribe to continue.",
+    403,
+    SUBSCRIPTION_ERROR_CODES.SUBSCRIPTION_REQUIRED
+  );
+
+const cardDeclinedError = () =>
+  createAppError(
+    "Your card was declined. You are still on your current plan.",
+    402,
+    "CARD_DECLINED"
+  );
+
+/** Log a Stripe SDK failure and throw a stable API error. */
+const rethrowAsBillingError = (
+  err: unknown,
+  logLabel: string,
+  userMessage: string,
+  code: string,
+  statusCode = 502
+): never => {
+  if (!isStripeSdkError(err)) throw err;
+  console.error(logLabel, err.type, err.code, err.message);
+  throw createAppError(userMessage, statusCode, code);
+};
+
 export {
   PermanentBillingError,
+  cardDeclinedError,
   isPermanentBillingError,
   isStripeSdkError,
+  rethrowAsBillingError,
   stripeNotConfiguredError,
+  subscriptionRequiredError,
 };
 export type { PermanentLikeError, StripeLikeError };

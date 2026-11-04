@@ -3,7 +3,7 @@ import { createAppError } from "../../lib/appError.ts";
 import type { AuthUser } from "../../types/express.d.ts";
 import { loadOwnerStoreContext } from "../subscriptions/ownerContext.ts";
 import {
-  isStripeSdkError,
+  rethrowAsBillingError,
   stripeNotConfiguredError,
 } from "./billing.errors.ts";
 import { getStripe } from "./providers/stripe.ts";
@@ -36,11 +36,10 @@ const createBillingPortalSession = async (user: AuthUser) => {
     }
     return { url: portal.url };
   } catch (err) {
-    if (!isStripeSdkError(err)) throw err;
-    console.error("Stripe portal failed", err.type, err.code, err.message);
-    throw createAppError(
+    return rethrowAsBillingError(
+      err,
+      "Stripe portal failed",
       "Could not open billing portal. Please try again.",
-      502,
       "PORTAL_FAILED"
     );
   }

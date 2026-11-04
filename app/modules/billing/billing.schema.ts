@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 const checkoutSchema = z.object({
-  plan: z.literal("pro", {
+  plan: z.enum(["pro", "business"], {
     errorMap: () => ({
-      message: "Only the Pro plan can be checked out right now.",
+      message: "Only Pro or Business can be checked out right now.",
     }),
   }),
 });
@@ -16,4 +16,12 @@ const confirmCheckoutSchema = z.object({
     .regex(/^cs_/, "sessionId must be a Stripe Checkout session id"),
 });
 
-export { checkoutSchema, confirmCheckoutSchema };
+const changePlanSchema = z.object({
+  plan: z.enum(["pro", "business"], {
+    errorMap: () => ({
+      message: "Only Pro or Business can be selected.",
+    }),
+  }),
+});
+
+export { changePlanSchema, checkoutSchema, confirmCheckoutSchema };
